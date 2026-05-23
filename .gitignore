@@ -28,3 +28,18 @@ Thumbs.db
 .vscode/settings.json
 
 # Note: supabase/migrations/ and docs/ are intentionally tracked
+
+# Local JSON fallback runtime data
+business_members.json
+business_profile.json
+crm_activities.json
+crm_leads.json
+history.json
+user_profiles.json
+forecast_snapshots.json
+chat_history.json
+notifications.json
+automation_rules.json
+whatsapp_logs.json
+data/
+server/data/
