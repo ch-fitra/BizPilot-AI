@@ -1,0 +1,6 @@
+{
+  "name": "BizPilot AI",
+  "description": "The Autonomous Business Copilot for Indonesian MSMEs. Transform messy operational data into actionable business intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
