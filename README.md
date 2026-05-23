@@ -13,6 +13,13 @@
 
 ---
 
+## 🚀 Live Demo
+
+- 🌐 Live Application: [BizPilot AI](https://bizpilot-ai-483259123956.asia-southeast2.run.app)
+- 📦 GitHub Repository: [BizPilot-AI](https://github.com/ch-fitra/BizPilot-AI)
+
+---
+
 ## 🔴 Problem Statement
 
 Banyak UMKM Indonesia menghadapi tantangan operasional yang serius:
@@ -191,12 +198,14 @@ Lihat panduan lengkap di [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
 | Feature | Preview |
 |---------|---------|
-| Dashboard Overview | `docs/screenshots/overview.png` |
+| Overview Dashboard | `docs/screenshots/overview.png` |
 | AI Analyzer | `docs/screenshots/ai_analyzer.png` |
-| CRM Pipeline | `docs/screenshots/crm.png` |
 | Forecasting | `docs/screenshots/forecasting.png` |
+| CRM Pipeline | `docs/screenshots/crm.png` |
 | WhatsApp Automation | `docs/screenshots/whatsapp.png` |
+| AI Business Chat | `docs/screenshots/ai_chat.png` |
 | Reports | `docs/screenshots/reports.png` |
+| Judge Demo Mode | `docs/screenshots/judge_demo.png` |
 | PWA Install | `docs/screenshots/pwa.png` |
 
 > Screenshots dapat ditambahkan ke folder `docs/screenshots/`. Jalankan aplikasi untuk melihat tampilan langsung.
@@ -344,9 +353,11 @@ npm run analyze       # Bundle analysis → dist/stats.html
 
 ---
 
-## 👨‍💻 Credits
+## 👨‍💻 Creator
 
-Built with ❤️ by **[ch-fitra / Kevin](https://github.com/ch-fitra)**
+Built and developed independently by **[Chairul Fitra Ramadhan](https://github.com/ch-fitra)**.
+
+*Independent Developer | AI Engineer | Builder of BizPilot AI*
 
 Powered by:
 - 🤖 [Google Gemini AI](https://deepmind.google/technologies/gemini/) — Intelligence layer
