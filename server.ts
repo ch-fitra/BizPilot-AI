@@ -3,6 +3,10 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
+import { initializeDatabasePrecheck } from './server/db/supabaseClient';
+import analysisHistoryRouter from './server/routes/analysisHistory';
+import businessProfileRouter from './server/routes/businessProfile';
+import reportsRouter from './server/routes/reports';
 
 dotenv.config();
 
@@ -40,6 +44,15 @@ function getAiClient(): GoogleGenAI {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', serverTime: new Date().toISOString() });
 });
+
+// Register Analysis History endpoints
+app.use('/api/analysis-history', analysisHistoryRouter);
+
+// Register Business Profile endpoints
+app.use('/api/business-profile', businessProfileRouter);
+
+// Register Reports endpoints
+app.use('/api/reports', reportsRouter);
 
 // 2. Autonomous Analysis Route
 app.post('/api/analyze', async (req, res) => {
@@ -240,6 +253,13 @@ You MUST produce a JSON response adhering to the exact schema requested.`;
 
 // 3. Vite Server / Production SPA Static Handler Pipeline
 async function runServer() {
+  // Precheck Supabase database schema health to allow instant Local JSON fallback if needed
+  try {
+    await initializeDatabasePrecheck();
+  } catch (dbError) {
+    console.error('Initial database schema verification failed:', dbError);
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
