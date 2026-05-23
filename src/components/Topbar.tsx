@@ -1,5 +1,6 @@
 import React from 'react';
 import { Compass, Menu, Sparkles, RefreshCw, Server, AlertCircle, Building2 } from 'lucide-react';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 interface TopbarProps {
   sidebarOpen: boolean;
@@ -60,14 +61,8 @@ export default function Topbar({
         {/* Right Info Badges & Shortcuts */}
         <div className="flex items-center gap-4">
           
-          {/* Active Business Profile Marker */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-900 leading-none text-left">
-            <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <div>
-              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block">PROFIL</span>
-              <span className="text-xs font-semibold text-slate-350 block truncate max-w-[120px]">{businessName}</span>
-            </div>
-          </div>
+          {/* Workspace Switcher Component */}
+          <WorkspaceSwitcher />
 
           {/* Location Badge */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-900 leading-none text-left">

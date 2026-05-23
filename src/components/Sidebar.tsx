@@ -10,7 +10,10 @@ import {
   Building2,
   X,
   History,
-  FileText
+  FileText,
+  Users,
+  Bell,
+  TrendingUp
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,12 +37,17 @@ export default function Sidebar({
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: Compass, desc: 'Ringkasan performa' },
     { id: 'sales', label: 'Sales Analytics', icon: BarChart3, desc: 'Grafik & tren omzet' },
+    { id: 'forecasting_risk', label: 'Forecasting & Risk AI', icon: TrendingUp, desc: 'Proyeksi & mitigasi risiko', highlight: true },
+    { id: 'crm', label: 'CRM & Leads', icon: Users, desc: 'Kelola prospek sales', highlight: true },
+    { id: 'notifications_automation', label: 'Notifications & Otomasi', icon: Bell, desc: 'Otomatisasi & WA follow-up', highlight: true },
     { id: 'inventory', label: 'Inventory / Stok', icon: Package, desc: 'Logistik & restock' },
     { id: 'customer', label: 'Customer Insights', icon: MessageSquare, desc: 'Sentiment ulasan' },
+    { id: 'chat', label: 'AI Business Chat', icon: Sparkles, desc: 'Tanya konsultan Bisnis', highlight: true },
     { id: 'action_plan', label: 'Action Plan', icon: CheckSquare, desc: 'Rencana aksi harian' },
     { id: 'ai_analyzer', label: 'AI Analyzer', icon: Sparkles, desc: 'Unggah & komputerisasi', highlight: true },
     { id: 'history', label: 'Analysis History', icon: History, desc: 'Riwayat data audit' },
     { id: 'reports', label: 'Reports', icon: FileText, desc: 'Ekspor dokumen audit' },
+    { id: 'team', label: 'Team & Access', icon: Users, desc: 'Kelola anggota & peran' },
     { id: 'settings', label: 'Settings', icon: Settings, desc: 'Informasi bisnis' }
   ];
 

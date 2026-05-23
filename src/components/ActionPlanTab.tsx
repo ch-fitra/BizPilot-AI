@@ -16,9 +16,10 @@ import { BusinessHealthState, ActionItem } from '../types';
 interface ActionPlanTabProps {
   businessState: BusinessHealthState;
   onUpdateActionItems: (items: ActionItem[]) => void;
+  setActiveTab?: (tab: string) => void;
 }
 
-export default function ActionPlanTab({ businessState, onUpdateActionItems }: ActionPlanTabProps) {
+export default function ActionPlanTab({ businessState, onUpdateActionItems, setActiveTab }: ActionPlanTabProps) {
   
   const [tasks, setTasks] = useState<ActionItem[]>([]);
   const [taskName, setTaskName] = useState('');
@@ -26,6 +27,22 @@ export default function ActionPlanTab({ businessState, onUpdateActionItems }: Ac
   const [category, setCategory] = useState<'inventory' | 'customer_service' | 'marketing' | 'operations' | 'finance'>('operations');
   const [reasoning, setReasoning] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  
+  const [salesLeads, setSalesLeads] = useState<any[]>([]);
+
+  // Find leads requiring follow-up
+  useEffect(() => {
+    fetch('/api/crm/leads')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          // Saring prospek aktif yang butuh follow-up dan memiliki suhu tinggi/sedang
+          const active = data.leads.filter((l: any) => l.pipeline_stage !== 'Won' && l.pipeline_stage !== 'Lost');
+          setSalesLeads(active);
+        }
+      })
+      .catch(err => console.error('Error fetching leads in ActionPlanTab:', err));
+  }, []);
 
   // Initialize from parent
   useEffect(() => {
@@ -146,7 +163,17 @@ export default function ActionPlanTab({ businessState, onUpdateActionItems }: Ac
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {setActiveTab && (
+            <button
+              onClick={() => setActiveTab('chat')}
+              className="px-3.5 py-2 bg-indigo-600/10 hover:bg-indigo-600/25 border border-indigo-500/25 text-indigo-400 hover:text-indigo-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 select-none cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              Konsultasikan Prioritas
+            </button>
+          )}
+
           <Filter className="w-4 h-4 text-slate-500" />
           <select
             value={filterPriority}
@@ -241,6 +268,81 @@ export default function ActionPlanTab({ businessState, onUpdateActionItems }: Ac
               <p className="text-xs">
                 Tidak ada rencana aksi yang cocok dengan saringan saringan Anda.
               </p>
+            </div>
+          )}
+
+          {/* CRM Sales Follow-Up Reminders */}
+          {salesLeads.length > 0 && (
+            <div className="space-y-4 pt-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+                  AI Sales & Follow-Up Tasks (Tautan CRM)
+                </h3>
+                {setActiveTab && (
+                  <button 
+                    onClick={() => setActiveTab('crm')}
+                    className="text-[10px] text-indigo-400 font-bold hover:underline"
+                  >
+                    Buka Pipeline CRM &rarr;
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {salesLeads.slice(0, 4).map((l: any) => {
+                  const isOverdue = l.next_follow_up && new Date(l.next_follow_up).getTime() < Date.now();
+                  return (
+                    <div 
+                      key={l.id}
+                      onClick={() => setActiveTab && setActiveTab('crm')}
+                      className={`p-4 rounded-2xl bg-[#121622]/80 hover:bg-[#151b2c] border focus:outline-none transition-all duration-150 cursor-pointer text-left flex flex-col justify-between h-[135px] ${
+                        isOverdue 
+                          ? 'border-rose-500/20 shadow-lg shadow-rose-950/5' 
+                          : 'border-slate-850 hover:border-slate-800'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-center text-[9.5px]">
+                          <span className={`px-2 py-0.5 rounded font-mono font-bold ${
+                            l.interest_level === 'Hot' ? 'bg-rose-505/10 bg-rose-500/15 text-rose-400 border border-rose-500/20' : 
+                            l.interest_level === 'Cold' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-amber-500/10 text-amber-300'
+                          }`}>
+                            {l.interest_level === 'Hot' ? '🔥 Hot Lead' : `⚡ ${l.interest_level}`}
+                          </span>
+                          
+                          {l.next_follow_up && (
+                            <span className="text-slate-500 font-mono">
+                              Hingga: {l.next_follow_up.substring(0, 10)}
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="font-bold text-xs text-slate-100 mt-2 truncate">
+                          Hubungi {l.lead_name}
+                        </h4>
+                        
+                        <p className="text-[10.5px] text-slate-400 mt-1 line-clamp-2">
+                          {l.company_name ? `Instansi: ${l.company_name}. ` : ''}
+                          Potensi closing senilai IDR {Number(l.estimated_value || 0).toLocaleString('id-ID')} ({l.pipeline_stage}).
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-slate-900/60 pt-2 text-[9px] text-slate-500">
+                        <span className="font-mono">Skor: {l.lead_score}/100</span>
+                        {isOverdue ? (
+                          <span className="text-rose-455 text-rose-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                            ⚠️ SEGERA TELEPON
+                          </span>
+                        ) : (
+                          <span className="text-slate-550 text-indigo-400">Tekan untuk Follow-Up</span>
+                        )}
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

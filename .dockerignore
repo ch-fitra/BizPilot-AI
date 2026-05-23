@@ -2,8 +2,16 @@ node_modules
 dist
 .env
 .env.local
+.env.*
+!.env.example
 .git
 .gitignore
 npm-debug.log
 .DS_Store
-README.md
+*.md
+docs/
+supabase/
+forecast_snapshots.json
+*.log
+.vscode/
+.idea/

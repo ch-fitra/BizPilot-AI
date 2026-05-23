@@ -18,7 +18,23 @@ const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseUrl = cleanSupabaseUrl(rawUrl);
 const supabaseServiceKey = cleanEnvValue(rawKey);
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseServiceKey);
+const isPlaceholder = (val: string | undefined): boolean => {
+  if (!val) return true;
+  const v = val.toLowerCase();
+  return (
+    v.includes('your-project-id') ||
+    v.includes('your-supabase-service-role-key') ||
+    v.includes('your-supabase-anon-key') ||
+    v.includes('placeholder')
+  );
+};
+
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseServiceKey && 
+  !isPlaceholder(supabaseUrl) && 
+  !isPlaceholder(supabaseServiceKey)
+);
 
 export let isSchemaMissing = false;
 
@@ -54,7 +70,7 @@ export async function initializeDatabasePrecheck(): Promise<boolean> {
         (error as any).status === 404
       ) {
         setSchemaMissing(true);
-        console.warn('⚠️ SUPABASE ERROR CHECK CAUGHT: database tables are missing in the schema cache! Fallback on Local JSON is ACTIVE.');
+        console.log('Database Mode: Supabase is configured but tables do not exist yet. Running on Local JSON fallback.');
         return false;
       }
     }
@@ -74,7 +90,7 @@ export async function initializeDatabasePrecheck(): Promise<boolean> {
         (historyCheck.error as any).status === 404
       ) {
         setSchemaMissing(true);
-        console.warn('⚠️ SUPABASE ERROR CHECK CAUGHT: analysis_histories table is missing in the schema cache! Fallback on Local JSON is ACTIVE.');
+        console.log('Database Mode: Supabase analysis_histories table is missing. Running on Local JSON fallback.');
         return false;
       }
     }

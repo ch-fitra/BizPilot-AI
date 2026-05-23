@@ -11,7 +11,8 @@ import {
   TrendingDown,
   Building,
   RefreshCw,
-  Clock
+  Clock,
+  Users
 } from 'lucide-react';
 import { BusinessHealthState } from '../types';
 import HealthScoreCard from './HealthScoreCard';
@@ -42,6 +43,32 @@ export default function OverviewTab({
   hasProfile = true
 }: OverviewTabProps) {
   
+  const [crmStats, setCrmStats] = React.useState<any>(null);
+  const [forecastSnapshot, setForecastSnapshot] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (hasProfile) {
+      fetch('/api/crm/dashboard')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success) {
+            setCrmStats(data.stats);
+          }
+        })
+        .catch(err => console.error('Error loading CRM stats for OverviewTab:', err));
+
+      // Fetch Latest Forecasting snapshot
+      fetch('/api/forecast/latest')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success && data.snapshot) {
+            setForecastSnapshot(data.snapshot);
+          }
+        })
+        .catch(err => console.error('Error loading forecast stats for OverviewTab:', err));
+    }
+  }, [hasProfile]);
+
   // Format currency to IDR Rupiah
   const formatRupiah = (num: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -251,6 +278,124 @@ export default function OverviewTab({
 
       </div>
 
+      {/* Forecasting & Risk Projections Summary Row (Phase 8 Intel-AI Widget) */}
+      {forecastSnapshot && (
+        <div className="space-y-4 pt-2 animate-fadeIn">
+          <div className="flex justify-between items-center text-left">
+            <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-400 animate-pulse" />
+              Proyeksi Intelegensi & Risiko (Phase 8 Intel-AI)
+            </h3>
+            <button
+              onClick={() => setActiveTab('forecasting_risk')}
+              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold hover:underline transition flex items-center gap-1 cursor-pointer"
+            >
+              Buka Dashboard Peramalan AI
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Projected Revenue Mini Card */}
+            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-indigo-500/20 transition-all">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Proyeksi Omzet Masa Depan ({forecastSnapshot.forecast_range})</span>
+                <span className="text-xl font-bold text-indigo-400 block font-mono">
+                  {formatRupiah(forecastSnapshot.projected_revenue)}
+                </span>
+                <span className="text-[10.5px] text-slate-400 block font-medium">
+                  Saran Taktis: <strong className="text-indigo-300">Hubungi leads closing hangat segera</strong>
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/15">
+                <DollarSign className="w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Business Risk Index Mini Card */}
+            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-rose-500/20 transition-all">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Level Indikasi Risiko Bisnis harian</span>
+                <span className={`text-xl font-bold block ${forecastSnapshot.risk_level === 'Critical' ? 'text-rose-400 animate-pulse' : forecastSnapshot.risk_level === 'High' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {forecastSnapshot.risk_level === 'Critical' ? 'Kritis 🚨' : forecastSnapshot.risk_level === 'High' ? 'Tinggi ⚠' : forecastSnapshot.risk_level === 'Medium' ? 'Sedang' : 'Rendah'}
+                </span>
+                <span className="text-[10.5px] text-slate-400 block line-clamp-1 font-medium">
+                  Rekomendasi Utama: <strong className="text-slate-300">"{forecastSnapshot.ai_recommendations.shortTerm[0] || 'Monitor Logistik'}"</strong>
+                </span>
+              </div>
+              <div className={`p-2.5 rounded-xl border ${forecastSnapshot.risk_level === 'Critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/15' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+                <AlertOctagon className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CRM Business Pipeline Summary Card Section */}
+      {crmStats && (
+        <div className="space-y-4 pt-2">
+          <div className="flex justify-between items-center text-left">
+            <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-400" />
+              CRM & Sales Pipeline Overview
+            </h3>
+            <button
+              onClick={() => setActiveTab('crm')}
+              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold hover:underline transition flex items-center gap-1 cursor-pointer"
+            >
+              Buka CRM Lengkap
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Metric 1: Hot Leads count */}
+            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-rose-500/20 transition-all">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Hot Leads (Tinggi)</span>
+                <span className="text-xl font-bold text-rose-450 text-rose-400 block font-mono">
+                  {crmStats.hotLeads} Prospek
+                </span>
+                <span className="text-[10.5px] text-slate-500 block">Tingkat minat prioritas</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/15">
+                <Sparkles className="w-4 h-4 text-rose-400 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Metric 2: Estimated Revenue */}
+            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-cyan-500/20 transition-all">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Estimasi Nilai Pipeline</span>
+                <span className="text-xl font-bold text-cyan-450 text-cyan-400 block font-mono">
+                  {formatRupiah(crmStats.totalEstimatedRevenue)}
+                </span>
+                <span className="text-[10.5px] text-slate-500 block">Potensi konversi closing</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Metric 3: Pending Follow-up */}
+            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-amber-500/20 transition-all">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Menggantung (Follow-up)</span>
+                <span className="text-xl font-bold text-amber-450 text-amber-400 block font-mono">
+                  {crmStats.pendingFollowup} Prospek
+                </span>
+                <span className="text-[10.5px] text-slate-500 block">Butuh tindak lanjut lisan</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/15">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* Health Score Panel Widget */}
       <div className="space-y-4">
         <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
@@ -274,7 +419,7 @@ export default function OverviewTab({
           Navigasi Pintar Operasional
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
           {/* Action 1: AI Analyzer */}
           <div 
@@ -296,7 +441,27 @@ export default function OverviewTab({
             </div>
           </div>
 
-          {/* Action 2: Sales */}
+          {/* Action 2: AI Business Chat */}
+          <div 
+            onClick={() => setActiveTab('chat')}
+            className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
+          >
+            <div className="absolute bottom-[-15px] right-[-15px] w-24 h-24 bg-violet-500/5 rounded-full filter blur-[30px] pointer-events-none group-hover:bg-violet-500/15" />
+            <div className="flex justify-between items-center">
+              <div className="p-3 rounded-2xl bg-violet-600/10 text-violet-400 border border-violet-500/20">
+                <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+              </div>
+              <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-violet-400 transition-colors" />
+            </div>
+            <div className="mt-4">
+              <h4 className="font-bold text-sm text-slate-100 group-hover:text-violet-300 transition-colors">Tanya Konsultan AI</h4>
+              <p className="text-xs text-slate-450 mt-1">
+                Diskusikan riwayat audit, estimasi stok inventori, atau saring strategi promo instan.
+              </p>
+            </div>
+          </div>
+
+          {/* Action 3: Sales */}
           <div 
             onClick={() => setActiveTab('sales')}
             className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
@@ -309,14 +474,14 @@ export default function OverviewTab({
               <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-400 transition-colors" />
             </div>
             <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors">View Financial Report</h4>
+              <h4 className="font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors">Financial Reports</h4>
               <p className="text-xs text-slate-450 mt-1">
                 Tinjau visualisasi diagram omzet harian dan identifikasi pergeseran momentum pendapatan.
               </p>
             </div>
           </div>
 
-          {/* Action 3: Action Plan */}
+          {/* Action 4: Action Plan */}
           <div 
             onClick={() => setActiveTab('action_plan')}
             className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
@@ -329,7 +494,7 @@ export default function OverviewTab({
               <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-amber-400 transition-colors" />
             </div>
             <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-amber-350 transition-colors">Open Daily Action Plan</h4>
+              <h4 className="font-bold text-sm text-slate-100 group-hover:text-amber-350 transition-colors">Daily Action Plan</h4>
               <p className="text-xs text-slate-450 mt-1">
                 Buka daftar prioritas solusi operasional yang dihasilkan oleh robot asisten analisis AI.
               </p>

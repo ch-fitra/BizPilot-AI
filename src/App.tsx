@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { 
   Building2, 
   RefreshCw, 
   AlertCircle, 
   CheckCircle, 
   Compass, 
-  AlertTriangle 
+  AlertTriangle,
+  Loader2,
+  PlayCircle,
+  Route
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BusinessHealthState, TopProduct, ActionItem } from './types';
@@ -19,16 +22,35 @@ import SalesAnalyticsTab from './components/SalesAnalyticsTab';
 import InventoryTab from './components/InventoryTab';
 import CustomerInsightsTab from './components/CustomerInsightsTab';
 import ActionPlanTab from './components/ActionPlanTab';
-import AIAnalyzerTab from './components/AIAnalyzerTab';
-import SettingsTab from './components/SettingsTab';
-import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
-import ReportsTab from './components/ReportsTab';
-import ReportPreview from './components/ReportPreview';
+import { useAuth } from './hooks/useAuth';
 import { AnalysisHistoryRecord, BusinessProfile } from './types/analysis';
+import { InstallAppPrompt } from './components/InstallAppPrompt';
+import { OfflineBanner } from './components/OfflineBanner';
+import PageLoadingFallback from './components/PageLoadingFallback';
+
+const AIAnalyzerTab = lazy(() => import('./components/AIAnalyzerTab'));
+const AIBusinessChatTab = lazy(() => import('./components/AIBusinessChatTab'));
+const SettingsTab = lazy(() => import('./components/SettingsTab'));
+const AnalysisHistoryPage = lazy(() => import('./pages/AnalysisHistoryPage'));
+const ReportsTab = lazy(() => import('./components/ReportsTab'));
+const ReportPreview = lazy(() => import('./components/ReportPreview'));
+const CRMTab = lazy(() => import('./components/CRMTab'));
+const NotificationsTab = lazy(() => import('./components/NotificationsTab'));
+const ForecastingTab = lazy(() => import('./components/ForecastingTab'));
+const JudgeDemoLauncher = lazy(() => import('./components/JudgeDemoLauncher').then((module) => ({ default: module.JudgeDemoLauncher })));
+const GuidedDemoOverlay = lazy(() => import('./components/GuidedDemoOverlay').then((module) => ({ default: module.GuidedDemoOverlay })));
+const TeamManagementTab = lazy(() => import('./components/TeamManagementTab').then((module) => ({ default: module.TeamManagementTab })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then((module) => ({ default: module.RegisterPage })));
+
 
 export default function App() {
+  const { isAuthenticated, loading: authLoading, currentWorkspace } = useAuth();
+  const [currentHash, setCurrentHash] = useState(window.location.hash || '#/');
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [showJudgeDemo, setShowJudgeDemo] = useState<boolean>(false);
+  const [guidedDemoOpen, setGuidedDemoOpen] = useState<boolean>(false);
   
   // App-level state synchronization
   const [businessState, setBusinessState] = useState<BusinessHealthState>(DEFAULT_BUSINESS_STATE);
@@ -64,9 +86,13 @@ export default function App() {
 
   // API connectivity status state
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean>(true);
+  const businessStateWithProfile = useMemo(
+    () => ({ ...businessState, profile: activeProfile }),
+    [businessState, activeProfile]
+  );
 
   // Dynamic status checker helper
-  const checkBackendHealth = async () => {
+  const checkBackendHealth = useCallback(async () => {
     try {
       const response = await fetch('/api/health');
       const result = await response.json();
@@ -79,10 +105,10 @@ export default function App() {
       console.warn('Backend connection check failed: Offline or server offline.');
       setIsBackendHealthy(false);
     }
-  };
+  }, []);
 
   // Queries profile and history logs on boot to populate latest analysis automatically
-  const loadProfileAndLatestHistoryOnBoot = async () => {
+  const loadProfileAndLatestHistoryOnBoot = useCallback(async () => {
     try {
       // 1. Fetch active business profile
       const profRes = await fetch('/api/business-profile');
@@ -123,11 +149,30 @@ export default function App() {
       setIsEmptyState(true);
       setIsDemoActive(true);
     }
-  };
+  }, []);
+
+  // Sync current active business profile context state reactively
+  useEffect(() => {
+    if (currentWorkspace) {
+      setBusinessName(currentWorkspace.business_name);
+      setBusinessType(currentWorkspace.business_type || 'F&B Cafe');
+      setLocation(currentWorkspace.location || 'Indonesia');
+      setCurrency(currentWorkspace.currency || 'IDR');
+    }
+  }, [currentWorkspace]);
 
   useEffect(() => {
     checkBackendHealth();
-    loadProfileAndLatestHistoryOnBoot();
+
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash || '#/');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Auto load workspace history on authentication
+    if (isAuthenticated) {
+      loadProfileAndLatestHistoryOnBoot();
+    }
 
     // Parse standalone public share link on boot
     const match = window.location.pathname.match(/^\/reports\/([a-zA-Z0-9-]+)/);
@@ -154,9 +199,13 @@ export default function App() {
           setIsSharedLoading(false);
         });
     }
-  }, []);
 
-  const handleResetDemo = () => {
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [isAuthenticated, checkBackendHealth, loadProfileAndLatestHistoryOnBoot]);
+
+  const handleResetDemo = useCallback(() => {
     setBusinessState(DEFAULT_BUSINESS_STATE);
     setBusinessName('Kopi Selaras Cilandak');
     setBusinessType('F&B Cafe');
@@ -174,21 +223,33 @@ export default function App() {
     setTimeout(() => {
       setErrorBanner(null);
     }, 4000);
-  };
+  }, []);
 
-  const handleUpdateProducts = (newProducts: TopProduct[]) => {
+  const handleJudgeScenarioLoaded = useCallback(async () => {
+    await loadProfileAndLatestHistoryOnBoot();
+    setIsDemoActive(true);
+    setIsEmptyState(false);
+    setActiveTab('overview');
+    setShowJudgeDemo(false);
+    setGuidedDemoOpen(true);
+    setBannerType('info');
+    setErrorBanner('Judge Demo Mode aktif. Data demo berkualitas sudah dimuat untuk workspace ini.');
+    setTimeout(() => setErrorBanner(null), 6000);
+  }, [loadProfileAndLatestHistoryOnBoot]);
+
+  const handleUpdateProducts = useCallback((newProducts: TopProduct[]) => {
     setBusinessState(prev => ({
       ...prev,
       top_products: newProducts
     }));
-  };
+  }, []);
 
-  const handleUpdateActionItems = (newActions: ActionItem[]) => {
+  const handleUpdateActionItems = useCallback((newActions: ActionItem[]) => {
     setBusinessState(prev => ({
       ...prev,
       action_plan: newActions
     }));
-  };
+  }, []);
 
   // Saves the currently displayed active analysis results to the backend
   const handleSaveAnalysis = async () => {
@@ -348,6 +409,22 @@ export default function App() {
         );
       case 'sales':
         return <SalesAnalyticsTab businessState={businessState} />;
+      case 'forecasting_risk':
+        return (
+          <ForecastingTab 
+            businessState={businessStateWithProfile} 
+            setActiveTab={setActiveTab} 
+          />
+        );
+      case 'crm':
+        return <CRMTab businessState={businessState} setActiveTab={setActiveTab} />;
+      case 'notifications_automation':
+        return (
+          <NotificationsTab 
+            businessState={businessStateWithProfile}
+            setActiveTab={setActiveTab}
+          />
+        );
       case 'inventory':
         return (
           <InventoryTab 
@@ -362,10 +439,22 @@ export default function App() {
           <ActionPlanTab 
             businessState={businessState} 
             onUpdateActionItems={handleUpdateActionItems}
+            setActiveTab={setActiveTab}
           />
         );
       case 'ai_analyzer':
         return <AIAnalyzerTab onAnalyze={handleAnalyzeData} isLoading={isLoading} />;
+      case 'chat':
+        return (
+          <AIBusinessChatTab
+            businessName={businessName}
+            hasProfile={!!activeProfile}
+            isDemoActive={isDemoActive}
+            isEmptyState={isEmptyState}
+            businessState={businessState}
+            setActiveTab={setActiveTab}
+          />
+        );
       case 'history':
         return (
           <AnalysisHistoryPage 
@@ -375,6 +464,8 @@ export default function App() {
         );
       case 'reports':
         return <ReportsTab setActiveTab={setActiveTab} />;
+      case 'team':
+        return <TeamManagementTab />;
       case 'settings':
         return (
           <SettingsTab 
@@ -445,15 +536,45 @@ export default function App() {
           </div>
         </div>
         <div className="mt-6">
-          <ReportPreview record={sharedRecord} hideBackButton={true} />
+          <Suspense fallback={<PageLoadingFallback label="Memuat preview laporan..." />}>
+            <ReportPreview record={sharedRecord} hideBackButton={true} />
+          </Suspense>
         </div>
       </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100 font-sans">
+        <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
+        <p className="mt-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">MEMATANGKAN SESI BIZPILOT AI...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (currentHash === '#/register') {
+      return (
+        <Suspense fallback={<PageLoadingFallback label="Memuat halaman registrasi..." />}>
+          <RegisterPage />
+        </Suspense>
+      );
+    }
+    return (
+      <Suspense fallback={<PageLoadingFallback label="Memuat halaman login..." />}>
+        <LoginPage />
+      </Suspense>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#070913] text-slate-100 font-sans selection:bg-indigo-550 selection:text-white">
       
+      {/* PWA Prompts */}
+      <InstallAppPrompt />
+      <OfflineBanner />
+
       {/* Glow decorative graphics */}
       <div className="fixed top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/5 rounded-full filter blur-[120px] pointer-events-none" />
 
@@ -482,6 +603,47 @@ export default function App() {
 
         {/* Content Panel Area */}
         <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6">
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-850 bg-[#0f1322]/70 p-3 sm:p-4">
+            <div className="text-left">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-indigo-300">Final Demo Console</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Jalankan skenario juri atau pandu presentasi tujuh langkah tanpa input manual panjang.
+              </p>
+            </div>
+            <div className="flex flex-col xs:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => setShowJudgeDemo((value) => !value)}
+                className="min-h-11 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition"
+              >
+                <PlayCircle className="w-4 h-4" />
+                Start Judge Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuidedDemoOpen(true)}
+                className="min-h-11 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition"
+              >
+                <Route className="w-4 h-4" />
+                Guided Flow
+              </button>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {showJudgeDemo && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+              >
+                <Suspense fallback={<PageLoadingFallback label="Memuat Judge Demo Mode..." />}>
+                  <JudgeDemoLauncher onScenarioLoaded={handleJudgeScenarioLoaded} />
+                </Suspense>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {/* Dynamic Toast Alerts Banner */}
           <AnimatePresence>
@@ -553,7 +715,9 @@ export default function App() {
                 </button>
               </div>
             )}
-            {renderTabContent()}
+            <Suspense fallback={<PageLoadingFallback label="Memuat halaman dashboard..." />}>
+              {renderTabContent()}
+            </Suspense>
           </div>
 
         </main>
@@ -572,6 +736,16 @@ export default function App() {
           © 2026 BizPilot AI. Precision-engineered for operational intelligence.
         </p>
       </footer>
+
+      {guidedDemoOpen && (
+        <Suspense fallback={null}>
+          <GuidedDemoOverlay
+            open={guidedDemoOpen}
+            onClose={() => setGuidedDemoOpen(false)}
+            setActiveTab={setActiveTab}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

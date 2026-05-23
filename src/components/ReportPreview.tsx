@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   FileText, 
   Download, 
   ExternalLink, 
@@ -17,7 +17,6 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { AnalysisHistoryRecord } from '../types/analysis';
-import { exportReportToPdf } from '../utils/exportPdf';
 import { ReportService } from '../services/reportService';
 
 interface ReportPreviewProps {
@@ -76,8 +75,9 @@ export default function ReportPreview({ record, onBack, hideBackButton = false }
     }
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     try {
+      const { exportReportToPdf } = await import('../utils/exportPdf');
       exportReportToPdf(record);
     } catch (error) {
       console.error('PDF generation failed:', error);

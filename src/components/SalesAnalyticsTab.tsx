@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -63,6 +63,17 @@ export default function SalesAnalyticsTab({ businessState }: SalesAnalyticsTabPr
   const salesData = businessState.sales_data;
   const topProducts = businessState.top_products;
 
+  const salesMetrics = useMemo(() => {
+    if (!salesData || salesData.length === 0) {
+      return { sumRevenue: 0, averageSales: 0, maxDay: null as null | typeof salesData[number] };
+    }
+
+    const sumRevenue = salesData.reduce((acc, point) => acc + point.sales, 0);
+    const averageSales = sumRevenue / salesData.length;
+    const maxDay = [...salesData].sort((a, b) => b.sales - a.sales)[0];
+    return { sumRevenue, averageSales, maxDay };
+  }, [salesData]);
+
   if (!salesData || salesData.length === 0) {
     return (
       <div className="p-12 text-center rounded-3xl bg-[#121622]/90 border border-slate-800 flex flex-col items-center justify-center space-y-4">
@@ -76,10 +87,6 @@ export default function SalesAnalyticsTab({ businessState }: SalesAnalyticsTabPr
   }
 
   // Calculate insights
-  const sumRevenue = salesData.reduce((acc, point) => acc + point.sales, 0);
-  const averageSales = sumRevenue / salesData.length;
-  const maxDay = [...salesData].sort((a, b) => b.sales - a.sales)[0];
-
   return (
     <div className="space-y-8 text-left animate-fadeIn">
       
@@ -104,7 +111,7 @@ export default function SalesAnalyticsTab({ businessState }: SalesAnalyticsTabPr
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono text-slate-500 block">Total Omset Penjualan</span>
-            <span className="text-lg font-black text-slate-200 block mt-0.5">{formatRupiah(sumRevenue)}</span>
+            <span className="text-lg font-black text-slate-200 block mt-0.5">{formatRupiah(salesMetrics.sumRevenue)}</span>
             <span className="text-[10px] text-slate-400 block mt-0.5">Akumulasi periode berjalan</span>
           </div>
         </div>
@@ -116,7 +123,7 @@ export default function SalesAnalyticsTab({ businessState }: SalesAnalyticsTabPr
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono text-slate-500 block">Rata-rata Penjualan</span>
-            <span className="text-lg font-black text-slate-200 block mt-0.5">{formatRupiah(averageSales)}</span>
+            <span className="text-lg font-black text-slate-200 block mt-0.5">{formatRupiah(salesMetrics.averageSales)}</span>
             <span className="text-[10px] text-slate-400 block mt-0.5">Tingkat perputaran harian</span>
           </div>
         </div>
@@ -128,8 +135,8 @@ export default function SalesAnalyticsTab({ businessState }: SalesAnalyticsTabPr
           </div>
           <div>
             <span className="text-[10px] uppercase font-mono text-slate-500 block">Rerata Transaksi Tertinggi</span>
-            <span className="text-lg font-black text-slate-200 block mt-0.5">{maxDay ? `${formatRupiah(maxDay.sales)}` : '-'}</span>
-            <span className="text-[10px] text-slate-400 block mt-0.5">Tercapai pada {maxDay?.date || '-'}</span>
+            <span className="text-lg font-black text-slate-200 block mt-0.5">{salesMetrics.maxDay ? `${formatRupiah(salesMetrics.maxDay.sales)}` : '-'}</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Tercapai pada {salesMetrics.maxDay?.date || '-'}</span>
           </div>
         </div>
 

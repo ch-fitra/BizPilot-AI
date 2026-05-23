@@ -14,10 +14,14 @@ import {
   Mail,
   FileText,
   Database,
-  Undo2
+  Undo2,
+  ShieldCheck,
+  Activity
 } from 'lucide-react';
 import { BusinessProfileService } from '../services/businessProfileService';
 import { BusinessProfile, StorageMode } from '../types/analysis';
+import { fetchSecurityStatus, SecurityStatus } from '../utils/securityStatus';
+import { getClientEvents } from '../utils/errorHandler';
 
 interface SettingsTabProps {
   onProfileUpdated: (profile: BusinessProfile) => void;
@@ -50,9 +54,29 @@ export default function SettingsTab({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [checkingApi, setCheckingApi] = useState<boolean>(false);
+  const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
+  const [clientEventsCount, setClientEventsCount] = useState<number>(0);
 
   // Keep a copy of original database state for "Reset Form" functionality
   const [originalRecord, setOriginalRecord] = useState<BusinessProfile | null>(null);
+  const [isCopyingSql, setIsCopyingSql] = useState<boolean>(false);
+
+  const handleCopyCombinedSqlSchema = async () => {
+    setIsCopyingSql(true);
+    try {
+      const res = await BusinessProfileService.getCombinedSchema();
+      if (res.success && res.sql) {
+        await navigator.clipboard.writeText(res.sql);
+        alert('Sukses! Gabungan seluruh skema migrasi SQL (001-004) berhasil disalin ke clipboard Anda.\n\nSilakan buka SQL Editor di dashboard Supabase Anda, tempel (pasted) kodenya di sana, lalu klik tombol RUN.');
+      } else {
+        alert('Gagal mengambil gabungan SQL schema.');
+      }
+    } catch (err: any) {
+      alert('Gagal menyalin DDL skema: ' + err.message);
+    } finally {
+      setIsCopyingSql(false);
+    }
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -98,6 +122,10 @@ export default function SettingsTab({
 
   useEffect(() => {
     fetchProfile();
+    fetchSecurityStatus()
+      .then((status) => setSecurityStatus(status))
+      .catch((err) => console.warn('Failed to load security status:', err));
+    setClientEventsCount(getClientEvents().length);
   }, []);
 
   const handleResetForm = () => {
@@ -421,17 +449,35 @@ export default function SettingsTab({
                       Tabel Belum Terbentuk di Supabase
                     </div>
                     <p className="text-[11px] leading-relaxed text-slate-300 font-sans">
-                      Variabel rahasia sudah terkonfigurasi, namun tabel 
-                      <code className="text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono ml-1">business_profiles</code> dan 
-                      <code className="text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono ml-1">analysis_histories</code> tidak ditemukan.
+                      Kredensial Supabase Anda sudah terkonfigurasi, namun tabel 
+                      <code className="text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono ml-1">business_profiles</code>,
+                      <code className="text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono ml-1">analysis_histories</code>, dll. belum terbentuk di database.
                     </p>
-                    <div className="text-[10.5px] bg-[#0a0d16]/70 p-2.5 rounded-xl text-slate-450 space-y-1 font-mono">
-                      <div className="text-slate-300 font-bold mb-1 font-sans">Cara Mengatasi:</div>
-                      <div>1. Buka dashboard proyek Supabase Anda.</div>
-                      <div>2. Pilih menu <span className="text-indigo-400 font-bold">SQL Editor</span>.</div>
-                      <div>3. Buat New Query, masukkan isi dari file <span className="text-indigo-400">/supabase/migrations/001_initial_bizpilot_schema.sql</span>.</div>
-                      <div>4. Klik tombol <span className="text-emerald-400 font-bold font-sans">Run</span>.</div>
+                    <div className="text-[10.5px] bg-[#0a0d16]/70 p-3.5 rounded-xl text-slate-400 space-y-2.5 font-mono">
+                      <div className="text-slate-300 font-bold font-sans">Cara Mengatasi Instan:</div>
+                      <div>
+                        1. Klik tombol di bawah ini untuk menyalin seluruh kode SQL skema BizPilot (001 s.d. 004) sekaligus:
+                        <button
+                          type="button"
+                          onClick={handleCopyCombinedSqlSchema}
+                          disabled={isCopyingSql}
+                          className="mt-2 w-full py-2 px-3 bg-indigo-650 hover:bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-lg transition-all text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-950/30 border-none"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                          {isCopyingSql ? 'Menyalin...' : 'Salin Gabungan SQL Skema (Combined DDL)'}
+                        </button>
+                      </div>
+                      <div className="pt-1">
+                        2. Buka dashboard proyek Supabase Anda, lalu pilih menu <span className="text-indigo-400 font-bold font-sans">SQL Editor</span>.
+                      </div>
+                      <div>
+                        3. Buat Query baru (<span className="text-indigo-400 font-semibold font-sans">New Query</span>), lalu tempel (<span className="text-indigo-400 font-bold font-mono">Paste / Ctrl+V</span>) kode SQL yang baru saja Anda salin.
+                      </div>
+                      <div>
+                        4. Klik tombol <span className="text-emerald-400 font-bold font-sans">Run</span> (atau tekan Cmd/Ctrl + Enter) untuk membuat seluruh tabel.
+                      </div>
                     </div>
+                    
                     <button
                       type="button"
                       onClick={async () => {
@@ -452,9 +498,9 @@ export default function SettingsTab({
                           setCheckingApi(false);
                         }
                       }}
-                      className="w-full mt-1.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-550/40 text-amber-200 hover:text-white font-bold transition text-[10.5px] flex items-center justify-center gap-1.5"
+                      className="w-full mt-1.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-emerald-500/15 border border-amber-550/30 hover:border-emerald-500/30 text-amber-200 hover:text-emerald-400 font-black transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <RefreshCw className={`w-3 h-3 ${checkingApi ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 ${checkingApi ? 'animate-spin' : ''}`} />
                       Pindai Ulang Skema Database
                     </button>
                   </div>
@@ -482,6 +528,52 @@ export default function SettingsTab({
                     </p>
                   </div>
                 </div>
+
+                {securityStatus && (
+                  <div className="p-4 rounded-2xl bg-[#0a0d16] border border-slate-800 text-left space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                        <span className="text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-wider">
+                          Security & Runtime Mode
+                        </span>
+                      </div>
+                      <span className={`px-2.5 py-1 text-[9px] font-mono font-bold rounded-lg border ${
+                        securityStatus.valid
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                          : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      }`}>
+                        {securityStatus.valid ? 'READY' : 'LIMITED'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-slate-850 bg-slate-950/40 p-3">
+                        <span className="text-[9px] text-slate-500 font-mono uppercase">AI</span>
+                        <p className="text-xs font-bold text-slate-200 mt-1">
+                          {securityStatus.modes.ai === 'enabled' ? 'Enabled' : 'Disabled'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-850 bg-slate-950/40 p-3">
+                        <span className="text-[9px] text-slate-500 font-mono uppercase">WhatsApp</span>
+                        <p className="text-xs font-bold text-slate-200 mt-1">
+                          {securityStatus.modes.whatsapp === 'live' ? 'Live' : 'Simulation'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-850 bg-slate-950/40 p-3">
+                        <span className="text-[9px] text-slate-500 font-mono uppercase">Storage</span>
+                        <p className="text-xs font-bold text-slate-200 mt-1">
+                          {securityStatus.modes.storage === 'supabase-postgres' ? 'Supabase' : 'Local JSON'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10.5px] text-slate-400">
+                      <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>{clientEventsCount} client-side event tersimpan untuk observability lokal.</span>
+                    </div>
+                  </div>
+                )}
 
               </div>
 

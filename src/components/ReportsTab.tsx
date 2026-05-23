@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, 
   Search, 
@@ -14,12 +14,15 @@ import {
   Activity,
   User,
   MapPin,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users,
+  TrendingUp,
+  Clock
 } from 'lucide-react';
 import { AnalysisHistoryRecord } from '../types/analysis';
 import { ReportService } from '../services/reportService';
-import { exportReportToPdf } from '../utils/exportPdf';
 import ReportPreview from './ReportPreview';
+import { useDebouncedValue } from '../utils/performance';
 
 interface ReportsTabProps {
   setActiveTab: (tab: string) => void;
@@ -30,9 +33,23 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
   const [reports, setReports] = useState<AnalysisHistoryRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  const [crmStats, setCrmStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/crm/dashboard')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          setCrmStats(data.stats);
+        }
+      })
+      .catch(err => console.error('Error loading CRM stats inside ReportsTab:', err));
+  }, []);
 
   // Filter terms state
   const [searchName, setSearchName] = useState<string>('');
+  const debouncedSearchName = useDebouncedValue(searchName, 250);
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all'); // all, today, week, month, custom
   const [customDateValue, setCustomDateValue] = useState<string>('');
@@ -75,8 +92,9 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
     }
   };
 
-  const handleExportPdf = (e: React.MouseEvent, record: AnalysisHistoryRecord) => {
+  const handleExportPdf = async (e: React.MouseEvent, record: AnalysisHistoryRecord) => {
     e.stopPropagation();
+    const { exportReportToPdf } = await import('../utils/exportPdf');
     exportReportToPdf(record);
   };
 
@@ -86,9 +104,9 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
   };
 
   // Filter application calculation logic
-  const filteredReports = reports.filter(rep => {
+  const filteredReports = useMemo(() => reports.filter(rep => {
     // 1. Filter by business name / owner name
-    const matchesName = rep.business_name.toLowerCase().includes(searchName.toLowerCase());
+    const matchesName = rep.business_name.toLowerCase().includes(debouncedSearchName.toLowerCase());
 
     // 2. Filter by operational risk levels
     let matchesRisk = true;
@@ -114,7 +132,7 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
     }
 
     return matchesName && matchesRisk && matchesDate;
-  });
+  }), [reports, debouncedSearchName, riskFilter, dateFilter, customDateValue]);
 
   // Render report preview screen if a selection is active
   if (selectedReport) {
@@ -151,6 +169,40 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
           Refresh List
         </button>
       </div>
+
+      {/* CRM Sales Funnel Report Summary */}
+      {crmStats && (
+        <div className="p-5 rounded-2xl bg-[#121622]/90 border border-slate-850 flex flex-col md:flex-row items-stretch justify-between gap-4">
+          <div className="space-y-1 max-w-md">
+            <h3 className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-indigo-400" />
+              Sertifikasi Omzet & CRM Leads
+            </h3>
+            <p className="text-[11.5px] text-slate-400 leading-relaxed">
+              Ringkasan konversi prospek UMKM terbaru yang tercatat di database CRM BizPilot AI sebagai asisten operasional utama Anda.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 flex-1 max-w-xl text-left font-mono">
+            
+            <div className="p-3 bg-[#0b0e16] rounded-xl border border-slate-900 flex flex-col justify-between">
+              <span className="text-[8.5px] uppercase text-slate-500 font-bold block">Total Prospek</span>
+              <span className="text-sm font-black text-slate-200 mt-1 block">{crmStats.totalLeads} Leads</span>
+            </div>
+
+            <div className="p-3 bg-[#0b0e16] rounded-xl border border-slate-900 flex flex-col justify-between">
+              <span className="text-[8.5px] uppercase text-slate-500 font-bold block">Hot Leads 🔥</span>
+              <span className="text-sm font-black text-rose-400 mt-1 block">{crmStats.hotLeads} Prospek</span>
+            </div>
+
+            <div className="p-3 bg-[#0b0e16] rounded-xl border border-slate-900 flex flex-col justify-between">
+              <span className="text-[8.5px] uppercase text-slate-500 font-bold block">Potensi Omzet</span>
+              <span className="text-xs font-black text-cyan-400 mt-1 block">IDR {crmStats.totalEstimatedRevenue.toLocaleString('id-ID')}</span>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Filter and query controller panel */}
       <div className="bg-[#121622]/40 border border-slate-850 p-5 rounded-2xl space-y-4">
@@ -316,7 +368,19 @@ export default function ReportsTab({ setActiveTab }: ReportsTabProps) {
                 </div>
 
                 {/* Interactive Tool Actions */}
-                <div className="grid grid-cols-3 gap-1.5 border-t border-slate-900/60 pt-3.5 no-print">
+                <div className="grid grid-cols-4 gap-1.5 border-t border-slate-900/60 pt-3.5 no-print">
+                  {/* Tanya AI shortcut */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveTab('chat');
+                    }}
+                    className="p-2 py-1.5 bg-violet-650/10 hover:bg-violet-650/20 border border-violet-500/25 text-violet-400 hover:text-violet-300 rounded-xl text-[10px] font-bold transition flex items-center justify-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-violet-400 shrink-0" />
+                    Tanya AI
+                  </button>
+
                   {/* Share link button */}
                   <button
                     onClick={(e) => handleCopyLink(e, report.analysis_id)}

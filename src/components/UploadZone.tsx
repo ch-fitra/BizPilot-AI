@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Sparkles, MessageSquare, Database, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Sparkles, MessageSquare, Database, AlertCircle, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 interface UploadZoneProps {
   onAnalyze: (payload: {
@@ -14,6 +15,7 @@ interface UploadZoneProps {
 }
 
 export default function UploadZone({ onAnalyze, isLoading }: UploadZoneProps) {
+  const isOnline = useOnlineStatus();
   const [businessType, setBusinessType] = useState('F&B Cafe');
   const [textInput, setTextInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -22,6 +24,7 @@ export default function UploadZone({ onAnalyze, isLoading }: UploadZoneProps) {
   const [fileType, setFileType] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const businessTypes = [
     { label: '☕ F&B Cafe / Warung Kopi', value: 'F&B Cafe' },
@@ -286,17 +289,39 @@ export default function UploadZone({ onAnalyze, isLoading }: UploadZoneProps) {
 
         <button
           onClick={handleAnalyzeClick}
-          disabled={isLoading || (!base64Data && !textInput.trim())}
+          disabled={isLoading || !isOnline || (!base64Data && !textInput.trim())}
           className={`px-6 py-3 rounded-2xl font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/15 ${
-            isLoading || (!base64Data && !textInput.trim())
+            isLoading || !isOnline || (!base64Data && !textInput.trim())
               ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
               : 'bg-indigo-600 border border-indigo-500 text-white hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98]'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-indigo-200 animate-pulse" />
-          Komputerisasi Analisis Co-Pilot
+          {isOnline ? (
+            <>
+              <Sparkles className="w-4 h-4 text-indigo-200 animate-pulse" />
+              Komputerisasi Analisis Co-Pilot
+            </>
+          ) : (
+            <>
+              <WifiOff className="w-4 h-4 text-amber-400" />
+              Sedang Offline
+            </>
+          )}
         </button>
       </div>
+
+      {!isOnline && (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 p-4 rounded-2xl flex items-start gap-3 mt-4" id="uploadzone-offline-indicator">
+          <WifiOff className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-left">
+            <h5 className="font-bold text-amber-400">Analisis Pintar AI Membutuhkan Internet</h5>
+            <p className="text-slate-300 mt-1 leading-relaxed">
+              Fitur Komputerisasi Analisis Co-Pilot & Perhitungan Multi-Model membutuhkan koneksi internet aktif untuk memproses data Anda dengan selamat. Silakan hubungkan kembali perangkat Anda.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }

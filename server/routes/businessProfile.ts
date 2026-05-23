@@ -1,13 +1,57 @@
 import { Router } from 'express';
 import { BusinessProfileRepository, BusinessProfile } from '../repositories/businessProfileRepository';
 import { isSupabaseConfigured, isSchemaMissing, setSchemaMissing } from '../db/supabaseClient';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
+
+// GET the compiled consolidated SQL schema for Supabase
+router.get('/combined-schema', async (req, res) => {
+  try {
+    const migrationsDir = path.join(process.cwd(), 'supabase', 'migrations');
+    const files = [
+      '001_initial_bizpilot_schema.sql',
+      '002_business_chat_messages.sql',
+      '003_crm_leads.sql',
+      '004_notifications_and_automation.sql',
+      '005_forecasting_risk.sql'
+    ];
+
+    let combinedSql = `-- BIZPILOT CONSOLIDATED SUPABASE SCHEMA DDL\n`;
+    combinedSql += `-- Salin dan tempel kode ini langsung ke SQL Editor di Supabase, lalu klik RUN.\n\n`;
+
+    for (const file of files) {
+      const filePath = path.join(migrationsDir, file);
+      if (fs.existsSync(filePath)) {
+        const fileContent = await fs.promises.readFile(filePath, 'utf-8');
+        combinedSql += `\n-- ==========================================\n`;
+        combinedSql += `-- MIGRATION: ${file}\n`;
+        combinedSql += `-- ==========================================\n\n`;
+        combinedSql += fileContent;
+        combinedSql += `\n`;
+      }
+    }
+
+    res.json({
+      success: true,
+      sql: combinedSql
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to consolidate SQL schemas: ' + err.message
+    });
+  }
+});
 
 // GET active business profile
 router.get('/', async (req, res) => {
   try {
-    const profile = await BusinessProfileRepository.getActiveProfile();
+    const activeBusinessId = (req as any).businessId;
+    const profile = activeBusinessId
+      ? await BusinessProfileRepository.getById(activeBusinessId)
+      : await BusinessProfileRepository.getActiveProfile();
     const resolvedMode = isSupabaseConfigured && !isSchemaMissing ? 'Supabase PostgreSQL' : 'Local JSON';
 
     res.json({
@@ -30,7 +74,10 @@ router.post('/recheck-schema', async (req, res) => {
   try {
     // Reset schema missing on server and attempt query
     setSchemaMissing(false);
-    const profile = await BusinessProfileRepository.getActiveProfile();
+    const activeBusinessId = (req as any).businessId;
+    const profile = activeBusinessId
+      ? await BusinessProfileRepository.getById(activeBusinessId)
+      : await BusinessProfileRepository.getActiveProfile();
     const resolvedMode = isSupabaseConfigured && !isSchemaMissing ? 'Supabase PostgreSQL' : 'Local JSON';
 
     res.json({
@@ -90,6 +137,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    const activeBusinessId = (req as any).businessId;
+    if (activeBusinessId && id !== activeBusinessId) {
+      return res.status(403).json({ success: false, error: 'Anda hanya dapat mengubah profil workspace aktif.' });
+    }
     const { business_name, business_type, owner_name, location, currency, phone, email, description } = req.body;
 
     const updates: Partial<Omit<BusinessProfile, 'id' | 'created_at' | 'updated_at'>> = {};
@@ -117,6 +168,10 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    const activeBusinessId = (req as any).businessId;
+    if (activeBusinessId && id !== activeBusinessId) {
+      return res.status(403).json({ success: false, error: 'Anda hanya dapat menghapus profil workspace aktif.' });
+    }
     const deleted = await BusinessProfileRepository.deleteProfile(id);
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Matching business profile not found to process deletion.' });

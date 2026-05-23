@@ -122,6 +122,36 @@ export class BusinessProfileRepository {
     }
   }
 
+  static async getById(id: string): Promise<BusinessProfile | null> {
+    if (isSupabaseConfigured && !isSchemaMissing) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('business_profiles')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+          if (!error && data) {
+            return data as BusinessProfile;
+          }
+        } catch (err) {
+          console.error(`Exception retrieving business profile ${id}:`, err);
+        }
+      }
+    }
+
+    try {
+      await this.ensureLocalFileExists();
+      const content = await fs.readFile(PROFILE_FILE_PATH, 'utf-8');
+      const list = JSON.parse(content) as BusinessProfile[];
+      return list.find((profile) => profile.id === id) || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Create an initial or secondary business profile
   static async createProfile(profile: Omit<BusinessProfile, 'id' | 'created_at' | 'updated_at'>): Promise<BusinessProfile> {
     if (isSupabaseConfigured && !isSchemaMissing) {

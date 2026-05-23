@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="100%" stop-color="#020408" />
+    </linearGradient>
+    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="accent-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Smooth square with rounded corners (iOS-like squircle) -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg-grad)" stroke="#1e293b" stroke-width="8" />
+  
+  <!-- Futuristic Compass/Pilot Wing Motif -->
+  <g transform="translate(256, 256)">
+    <!-- Outer energy ring -->
+    <circle r="180" fill="none" stroke="#1e293b" stroke-width="4" stroke-dasharray="16 8" />
+    <circle r="150" fill="none" stroke="url(#accent-grad)" stroke-width="2" stroke-opacity="0.3" />
+    
+    <!-- Left Wing -->
+    <path d="M -160 -20 L -40 -40 L -20 0 L -120 40 Z" fill="url(#primary-grad)" opacity="0.85" />
+    <!-- Right Wing -->
+    <path d="M 160 -20 L 40 -40 L 20 0 L 120 40 Z" fill="url(#primary-grad)" opacity="0.85" />
+    
+    <!-- Central Pilot Diamond/Arrow pointing North -->
+    <path d="M 0 -120 L 45 40 L 0 15 L -45 40 Z" fill="url(#primary-grad)" filter="drop-shadow(0px 8px 16px rgba(16, 185, 129, 0.4))" />
+    
+    <!-- Compass indicator core -->
+    <circle r="16" fill="#ffffff" />
+    <circle r="8" fill="#10b981" />
+  </g>
+</svg>

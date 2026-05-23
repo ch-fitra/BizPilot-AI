@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizPilot AI - Mode Offline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #070913;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: min-content;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient glowing backgrounds */
+        .ambient-light-1 {
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(16, 185, 129, 0.08);
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ambient-light-2 {
+            position: absolute;
+            bottom: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(59, 130, 246, 0.08);
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 440px;
+            width: 90%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px fill rgba(255, 255, 255, 0.1);
+            border: 1px solid #1e293b;
+            padding: 2.5rem 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo-container {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+        }
+
+        .logo-icon {
+            color: #10b981;
+            width: 36px;
+            height: 36px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+            letter-spacing: -0.025em;
+            color: #ffffff;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        p {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin: 0 0 1.5rem;
+        }
+
+        .alert-box {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 0.875rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        .alert-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-item::before {
+            content: "•";
+            color: #10b981;
+            font-weight: bold;
+            display: inline-block;
+            width: 1rem;
+            flex-shrink: 0;
+        }
+
+        .btn-retry {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #070913;
+            border: none;
+            padding: 0.875rem;
+            border-radius: 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-retry:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .btn-retry:active {
+            transform: translateY(0);
+        }
+
+        .indicator-offline {
+            width: 8px;
+            height: 8px;
+            background-color: #f59e0b;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse-orange 2s infinite;
+        }
+
+        @keyframes pulse-orange {
+            0% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-light-1"></div>
+    <div class="ambient-light-2"></div>
+
+    <div class="container">
+        <div class="logo-container">
+            <!-- Simple SVG Plane/Compass Pilot Logo -->
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+        </div>
+
+        <h1>BizPilot AI</h1>
+        <div class="status-badge">
+            <span class="indicator-offline"></span>Koneksi Terputus
+        </div>
+
+        <p>Anda sedang berada di luar jaringan atau tidak memiliki koneksi internet aktif. BizPilot AI mengaktifkan sistem lokal mandiri.</p>
+
+        <div class="alert-box">
+            <div class="alert-item">Data profil dan history audit terakhir Anda tetap bisa dibuka secara local.</div>
+            <div class="alert-item">Fitur AI generator, chatbot, dan kirim pesan WhatsApp membutuhkan internet aktif.</div>
+            <div class="alert-item">Perubahan lokal / CRM Anda disimpan aman ke sistem Queue Offline dan disinkronisasi otomatis saat online.</div>
+        </div>
+
+        <button class="btn-retry" onclick="window.location.reload()">Coba Hubungkan Kembali</button>
+    </div>
+</body>
+</html>

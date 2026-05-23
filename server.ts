@@ -4,14 +4,41 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { initializeDatabasePrecheck } from './server/db/supabaseClient';
+import { authMiddleware } from './server/middleware/authMiddleware';
+import authRouter from './server/routes/authRoutes';
+import teamRouter from './server/routes/teamRoutes';
 import analysisHistoryRouter from './server/routes/analysisHistory';
 import businessProfileRouter from './server/routes/businessProfile';
 import reportsRouter from './server/routes/reports';
+import businessChatRouter from './server/routes/businessChat';
+import crmRouter from './server/routes/crm';
+import notificationsRouter from './server/routes/notifications';
+import forecastRouter from './server/routes/forecast';
+import demoRouter from './server/routes/demo';
+import { requestLogger } from './server/middleware/requestLogger';
+import { errorHandler, standardizeApiErrorResponse } from './server/middleware/errorHandler';
+import { validateEnvironment } from './server/config/envValidation';
 
 dotenv.config();
 
+// Run environmental validation at server boot
+const envCheck = validateEnvironment();
+console.log('--- [BIZPILOT CO-PILOT STARTUP AUDIT] ---');
+if (envCheck.valid) {
+  console.log('✅ ALL CRITICAL SECURITY & API CREDENTIALS VERIFIED');
+} else {
+  console.warn('⚠️ CRITICAL SECRETS DEFICIENT. RUNNING IN LOCAL SIMULATOR RESILIENCY MODE:');
+  envCheck.issues.forEach(issue => console.warn(`   - ${issue}`));
+}
+envCheck.warnings.forEach(warn => console.log(`   💡 ${warn}`));
+console.log('-----------------------------------------');
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+// Mount observational logging middleware
+app.use(requestLogger);
+app.use(standardizeApiErrorResponse);
 
 // Body limits configured for rich-media uploads
 app.use(express.json({ limit: '20mb' }));
@@ -45,17 +72,69 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', serverTime: new Date().toISOString() });
 });
 
-// Register Analysis History endpoints
-app.use('/api/analysis-history', analysisHistoryRouter);
+// PWA & Service Worker Awareness Endpoint
+app.get('/api/system/pwa-status', (req, res) => {
+  res.json({
+    status: 'ok',
+    offlineSupport: true,
+    syncStrategy: 'stale-while-revalidate',
+    manifestUrl: '/manifest.webmanifest',
+    fallbackPageUrl: '/offline.html'
+  });
+});
 
-// Register Business Profile endpoints
-app.use('/api/business-profile', businessProfileRouter);
+app.get('/api/system/security-status', (req, res) => {
+  const currentCheck = validateEnvironment();
+  const hasGemini = !!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('MY_');
+  const hasWhatsApp = !!process.env.WHATSAPP_API_URL && !!process.env.WHATSAPP_API_TOKEN;
+  const hasSupabase = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Register Reports endpoints
-app.use('/api/reports', reportsRouter);
+  res.json({
+    success: true,
+    data: {
+      ...currentCheck,
+      modes: {
+        ai: hasGemini ? 'enabled' : 'disabled',
+        whatsapp: hasWhatsApp ? 'live' : 'simulation',
+        storage: hasSupabase ? 'supabase-postgres' : 'local-json'
+      }
+    }
+  });
+});
 
-// 2. Autonomous Analysis Route
-app.post('/api/analyze', async (req, res) => {
+
+// Public Authentication endpoints
+app.use('/api/auth', authRouter);
+
+// Register Analysis History endpoints (Protected)
+app.use('/api/analysis-history', authMiddleware, analysisHistoryRouter);
+
+// Register Business Profile endpoints (Protected)
+app.use('/api/business-profile', authMiddleware, businessProfileRouter);
+
+// Register Reports endpoints (Protected)
+app.use('/api/reports', authMiddleware, reportsRouter);
+
+// Register Business Chat endpoints (Protected)
+app.use('/api/chat', authMiddleware, businessChatRouter);
+
+// Register CRM Leads endpoints (Protected)
+app.use('/api/crm', authMiddleware, crmRouter);
+
+// Register Notifications, Automation and WhatsApp endpoints (Protected)
+app.use('/api', authMiddleware, notificationsRouter);
+
+// Register Forecasting & Risk AI endpoints (Protected)
+app.use('/api/forecast', authMiddleware, forecastRouter);
+
+// Register Team Management endpoints (Protected)
+app.use('/api/team', teamRouter);
+
+// Register Judge Demo Mode Scenario Seeding Enpoints (Protected)
+app.use('/api/demo', authMiddleware, demoRouter);
+
+// 2. Autonomous Analysis Route (Protected)
+app.post('/api/analyze', authMiddleware, async (req, res) => {
   try {
     const { fileData, fileName, fileType, textInput, businessType } = req.body;
 
@@ -250,6 +329,9 @@ You MUST produce a JSON response adhering to the exact schema requested.`;
     });
   }
 });
+
+// Post-routing Global Error Formatter
+app.use(errorHandler);
 
 // 3. Vite Server / Production SPA Static Handler Pipeline
 async function runServer() {

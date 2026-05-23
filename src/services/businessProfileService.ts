@@ -49,6 +49,19 @@ export class BusinessProfileService {
     }
   }
 
+  static async getCombinedSchema(): Promise<{ success: boolean; sql: string }> {
+    try {
+      const response = await fetch('/api/business-profile/combined-schema');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to retrieve combined SQL DDL schema:', error);
+      return { success: false, sql: '' };
+    }
+  }
+
   static async createProfile(profile: Omit<BusinessProfile, 'id' | 'created_at' | 'updated_at'>): Promise<any> {
     try {
       const response = await fetch('/api/business-profile', {

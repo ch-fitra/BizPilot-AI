@@ -26,13 +26,15 @@ interface AnalysisDetailModalProps {
   onClose: () => void;
   record: AnalysisHistoryRecord | null;
   onApplyToDashboard: (record: AnalysisHistoryRecord) => void;
+  onConsultAI?: () => void;
 }
 
 export default function AnalysisDetailModal({
   isOpen,
   onClose,
   record,
-  onApplyToDashboard
+  onApplyToDashboard,
+  onConsultAI
 }: AnalysisDetailModalProps) {
   
   // Close on Escape key
@@ -386,6 +388,16 @@ export default function AnalysisDetailModal({
             >
               Kembali Ke Riwayat
             </button>
+
+            {onConsultAI && (
+              <button
+                onClick={onConsultAI}
+                className="px-5 py-2.5 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/25 text-violet-400 hover:text-violet-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition select-none cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+                Tanya Konsultan AI
+              </button>
+            )}
 
             <button
               onClick={() => {

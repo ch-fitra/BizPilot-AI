@@ -261,6 +261,13 @@ export default function AnalysisHistoryPage({
         onClose={() => setIsDetailOpen(false)}
         record={selectedRecord}
         onApplyToDashboard={onApplyToDashboard}
+        onConsultAI={() => {
+          if (selectedRecord) {
+            onApplyToDashboard(selectedRecord);
+          }
+          setIsDetailOpen(false);
+          setActiveTab('chat');
+        }}
       />
 
     </div>

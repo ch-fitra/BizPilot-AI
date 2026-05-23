@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AnalysisHistoryRepository } from '../repositories/analysisHistoryRepository';
+import { ForecastRepository } from '../repositories/forecastRepository';
 
 const router = Router();
 
@@ -139,6 +140,27 @@ router.get('/:analysisId/csv', async (req, res) => {
       });
     } else {
       csvContent += `"N/A","N/A","N/A","N/A","N/A"\n`;
+    }
+
+    // SECTION 6: FORECASTING & RISK AI PREDICTIONS
+    csvContent += `\n`;
+    csvContent += `"=== FORECASTING & RISK AI PREDICTIONS ==="\n`;
+    try {
+      const forecast = await ForecastRepository.getLatest();
+      if (forecast) {
+        csvContent += `"Rentang Prediksi","Proyeksi Omzet","Proyeksi Transaksi","Level Risiko Bisnis","Margin Keyakinan (Confidence)"\n`;
+        csvContent += `"${forecast.forecast_range}","${forecast.projected_revenue}","${forecast.projected_transactions}","${forecast.risk_level}","${forecast.confidence_level}"\n\n`;
+        
+        csvContent += `"=== ESTIMASI MITIGASI AI & MATRIKS RISIKO ==="\n`;
+        csvContent += `"Faktor Risiko Pembeli","${forecast.ai_recommendations.whyMatters.replace(/"/g, '""')}"\n`;
+        csvContent += `"Ancaman Utama Terdeteksi","${forecast.ai_recommendations.causes.join(' [DAN] ').replace(/"/g, '""')}"\n`;
+        csvContent += `"Saran Mitigasi Segera (24 Jam)","${forecast.ai_recommendations.shortTerm.join('; ').replace(/"/g, '""')}"\n`;
+        csvContent += `"Saran Rencana Kerja Taktis (7 Hari)","${forecast.ai_recommendations.mediumTerm.join('; ').replace(/"/g, '""')}"\n`;
+      } else {
+        csvContent += `"Data peramalan prediktif belum dijalankan di sistem."\n`;
+      }
+    } catch (e: any) {
+      csvContent += `"Gagal melampirkan proyeksi: ${e.message}"\n`;
     }
 
     // Prepare filename

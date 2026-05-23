@@ -6,7 +6,9 @@ const router = Router();
 // GET all analysis records
 router.get('/', async (req, res) => {
   try {
-    const list = await AnalysisHistoryRepository.getAll();
+    const activeBusinessId = (req as any).businessId;
+    const list = (await AnalysisHistoryRepository.getAll())
+      .filter((record) => !activeBusinessId || record.business_id === activeBusinessId);
     res.json({ success: true, count: list.length, data: list });
   } catch (error: any) {
     res.status(500).json({ success: false, error: 'Failed to retrieve analysis history list: ' + error.message });
@@ -16,7 +18,9 @@ router.get('/', async (req, res) => {
 // GET latest analysis record
 router.get('/latest', async (req, res) => {
   try {
-    const latest = await AnalysisHistoryRepository.getLatest();
+    const activeBusinessId = (req as any).businessId;
+    const latest = (await AnalysisHistoryRepository.getAll())
+      .find((record) => !activeBusinessId || record.business_id === activeBusinessId) || null;
     res.json({ success: true, data: latest });
   } catch (error: any) {
     res.status(500).json({ success: false, error: 'Failed to fetch latest analysis: ' + error.message });
@@ -29,6 +33,10 @@ router.get('/:id', async (req, res) => {
     const record = await AnalysisHistoryRepository.getById(req.params.id);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Analysis record not found' });
+    }
+    const activeBusinessId = (req as any).businessId;
+    if (activeBusinessId && record.business_id !== activeBusinessId) {
+      return res.status(403).json({ success: false, error: 'Analysis record belongs to another workspace.' });
     }
     res.json({ success: true, data: record });
   } catch (error: any) {
@@ -92,6 +100,11 @@ router.post('/', async (req, res) => {
 // DELETE analysis record
 router.delete('/:id', async (req, res) => {
   try {
+    const activeBusinessId = (req as any).businessId;
+    const record = await AnalysisHistoryRepository.getById(req.params.id);
+    if (activeBusinessId && record && record.business_id !== activeBusinessId) {
+      return res.status(403).json({ success: false, error: 'Analysis record belongs to another workspace.' });
+    }
     const deleted = await AnalysisHistoryRepository.delete(req.params.id);
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Analysis record not found for execution' });

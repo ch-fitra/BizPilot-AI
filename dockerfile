@@ -19,6 +19,9 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 
+# Create data directory for Local JSON fallback storage
+RUN mkdir -p data server/data
+
 EXPOSE 8080
 
 CMD ["node", "dist/server.cjs"]
