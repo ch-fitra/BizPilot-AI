@@ -1,4 +1,4 @@
-﻿# BizPilot AI ðŸš€
+﻿# BizPilot AI
 
 **AI-powered MSME Business Operating System for Indonesian SMEs**
 
