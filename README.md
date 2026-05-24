@@ -1,4 +1,4 @@
-# BizPilot AI 🚀
+﻿# BizPilot AI ðŸš€
 
 **AI-powered MSME Business Operating System for Indonesian SMEs**
 
@@ -13,14 +13,14 @@
 
 ---
 
-## 🚀 Live Demo
+## ðŸš€ Live Demo
 
-- 🌐 Live Application: [BizPilot AI](https://bizpilot-ai-483259123956.asia-southeast2.run.app)
-- 📦 GitHub Repository: [BizPilot-AI](https://github.com/ch-fitra/BizPilot-AI)
+- ðŸŒ Live Application: [BizPilot AI](https://bizpilot-ai-483259123956.asia-southeast2.run.app)
+- ðŸ“¦ GitHub Repository: [BizPilot-AI](https://github.com/ch-fitra/BizPilot-AI)
 
 ---
 
-## 🔴 Problem Statement
+## ðŸ”´ Problem Statement
 
 Banyak UMKM Indonesia menghadapi tantangan operasional yang serius:
 
@@ -37,55 +37,55 @@ Banyak UMKM Indonesia menghadapi tantangan operasional yang serius:
 
 ---
 
-## ✅ Solution
+## âœ… Solution
 
 BizPilot AI adalah **AI-powered Business Operating System** yang dirancang khusus untuk UMKM Indonesia:
 
-- 🤖 **AI Business Analyzer** — Upload foto struk, CSV, atau ketik data manual. Dapatkan analisis mendalam dari Gemini AI.
-- 📊 **Business Dashboard** — Health score, alerts prioritas, trend penjualan, dan top produk dalam satu layar.
-- 🔮 **Forecasting & Risk AI** — Proyeksi revenue, risk radar, dan deteksi stockout sebelum terjadi.
-- 👥 **CRM & Sales Pipeline** — Kelola leads, pipeline penjualan, dan follow-up overdue.
-- 📱 **WhatsApp Automation** — Kirim pesan follow-up, notifikasi stok, dan promosi otomatis via WhatsApp.
-- 💬 **AI Business Chat** — Tanya AI tentang prioritas bisnis hari ini, strategi, atau analisis custom.
-- 📄 **Reports PDF/CSV** — Ekspor laporan bisnis profesional kapan saja.
-- 🏢 **Multi-Tenant SaaS** — Satu platform, banyak workspace bisnis dengan isolasi data penuh.
-- 📶 **PWA + Offline Mode** — Bisa diinstal dan bekerja saat internet tidak stabil.
-- 🎯 **Judge Demo Mode** — Mode presentasi dengan data dummy siap pakai untuk demo cepat.
+- ðŸ¤– **AI Business Analyzer** â€” Upload foto struk, CSV, atau ketik data manual. Dapatkan analisis mendalam dari Gemini AI.
+- ðŸ“Š **Business Dashboard** â€” Health score, alerts prioritas, trend penjualan, dan top produk dalam satu layar.
+- ðŸ”® **Forecasting & Risk AI** â€” Proyeksi revenue, risk radar, dan deteksi stockout sebelum terjadi.
+- ðŸ‘¥ **CRM & Sales Pipeline** â€” Kelola leads, pipeline penjualan, dan follow-up overdue.
+- ðŸ“± **WhatsApp Automation** â€” Kirim pesan follow-up, notifikasi stok, dan promosi otomatis via WhatsApp.
+- ðŸ’¬ **AI Business Chat** â€” Tanya AI tentang prioritas bisnis hari ini, strategi, atau analisis custom.
+- ðŸ“„ **Reports PDF/CSV** â€” Ekspor laporan bisnis profesional kapan saja.
+- ðŸ¢ **Multi-Tenant SaaS** â€” Satu platform, banyak workspace bisnis dengan isolasi data penuh.
+- ðŸ“¶ **PWA + Offline Mode** â€” Bisa diinstal dan bekerja saat internet tidak stabil.
+- ðŸŽ¯ **Judge Demo Mode** â€” Mode presentasi dengan data dummy siap pakai untuk demo cepat.
 
 ---
 
-## 🏗️ Architecture Overview
+## ðŸ—ï¸ Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (React SPA)                  │
-│  React 19 · TypeScript · Vite · Tailwind CSS · Recharts │
-│  PWA (Service Worker · Offline Page · Web Manifest)      │
-└────────────────────────┬────────────────────────────────┘
-                         │ REST API (JWT Auth)
-┌────────────────────────▼────────────────────────────────┐
-│                   BACKEND (Node.js/Express)              │
-│  Express Router · Auth Middleware · Tenant Middleware    │
-│  Repository Pattern · Error Handler · Request Logger     │
-│  Env Validator · Security Scanner                        │
-└──────────┬────────────────────────────┬─────────────────┘
-           │                            │
-┌──────────▼──────────┐    ┌────────────▼────────────────┐
-│   Google Gemini AI  │    │   Database Layer             │
-│   (via Backend)     │    │   Supabase/PostgreSQL        │
-│   Guardrail +       │    │   OR Local JSON Fallback     │
-│   Context Builder   │    │   (auto-detect at startup)   │
-└─────────────────────┘    └─────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│                    DEPLOYMENT                            │
-│  Docker · Google Cloud Run · HTTPS · Health Check       │
-└─────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    FRONTEND (React SPA)                  â”‚
+â”‚  React 19 Â· TypeScript Â· Vite Â· Tailwind CSS Â· Recharts â”‚
+â”‚  PWA (Service Worker Â· Offline Page Â· Web Manifest)      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚ REST API (JWT Auth)
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                   BACKEND (Node.js/Express)              â”‚
+â”‚  Express Router Â· Auth Middleware Â· Tenant Middleware    â”‚
+â”‚  Repository Pattern Â· Error Handler Â· Request Logger     â”‚
+â”‚  Env Validator Â· Security Scanner                        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+           â”‚                            â”‚
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   Google Gemini AI  â”‚    â”‚   Database Layer             â”‚
+â”‚   (via Backend)     â”‚    â”‚   Supabase/PostgreSQL        â”‚
+â”‚   Guardrail +       â”‚    â”‚   DB health checker     â”‚
+â”‚   Context Builder   â”‚    â”‚   (retry + circuit breaker)   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    DEPLOYMENT                            â”‚
+â”‚  Docker Â· Google Cloud Run Â· HTTPS Â· Health Check       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## ðŸ› ï¸ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -94,7 +94,7 @@ BizPilot AI adalah **AI-powered Business Operating System** yang dirancang khusu
 | **Charts** | Recharts + custom visualization |
 | **Backend** | Node.js 20, Express 4, TypeScript |
 | **AI Engine** | Google Gemini API (via backend, key never exposed to client) |
-| **Database** | Supabase/PostgreSQL (primary) · Local JSON (fallback) |
+| **Database** | Supabase/PostgreSQL (required for business data) |
 | **Auth** | JWT, bcryptjs, multi-tenant session |
 | **Export** | jsPDF, html2canvas, CSV native |
 | **PWA** | Service Worker, Web Manifest, Offline Page |
@@ -103,70 +103,70 @@ BizPilot AI adalah **AI-powered Business Operating System** yang dirancang khusu
 
 ---
 
-## 🎯 Key Features
+## ðŸŽ¯ Key Features
 
-### 🤖 AI Business Analyzer
+### ðŸ¤– AI Business Analyzer
 - Upload gambar, CSV, atau input teks manual
 - Analisis Gemini AI: health score, strengths, risks, alerts
 - Sales trend 7 hari, top products, customer review summary
 - Action plan prioritas berbasis AI
 
-### 📊 Business Dashboard
+### ðŸ“Š Business Dashboard
 - Health score visual
 - Inventory alerts real-time
 - Sales & revenue trend chart
 - Top product performance
 
-### 📈 Analysis History
+### ðŸ“ˆ Analysis History
 - Riwayat semua analisis tersimpan
 - Bisa dibuka ulang dan dibandingkan
 
-### 🔮 Forecasting & Risk AI
+### ðŸ”® Forecasting & Risk AI
 - Revenue projection 30/60/90 hari
 - Stockout risk detection
 - Risk radar chart
 - Scenario planning
 
-### 👥 CRM & Sales Pipeline
+### ðŸ‘¥ CRM & Sales Pipeline
 - Lead management (Hot/Warm/Cold)
 - Pipeline Kanban view
 - Follow-up overdue alerts
 - Search & filter leads
 
-### 📱 WhatsApp Automation
+### ðŸ“± WhatsApp Automation
 - Template pesan otomatis
 - Trigger: stok kritis, follow-up overdue, promo
 - Simulation mode (tanpa API key)
 - AI-generated message content
 
-### 💬 AI Business Chat
+### ðŸ’¬ AI Business Chat
 - Chat dengan AI yang mengenal bisnis Anda
 - Context: profile, history, CRM, forecast
 - Guardrail anti-hallucination
 - Memori sesi bisnis
 
-### 📄 Reports PDF/CSV
+### ðŸ“„ Reports PDF/CSV
 - Laporan bisnis lengkap
 - Ekspor PDF dan CSV
 - Preview sebelum ekspor
 
-### 🏢 Multi-Tenant Workspace
+### ðŸ¢ Multi-Tenant Workspace
 - Banyak workspace per user
 - Isolasi data antar tenant
 - RBAC: Owner/Admin/Staff/Viewer
 
-### 📶 PWA + Offline Mode
+### ðŸ“¶ PWA + Offline Mode
 - Install seperti aplikasi native
 - Offline banner & offline page
 - Cache app shell
 
-### 🎯 Judge Demo Mode
+### ðŸŽ¯ Judge Demo Mode
 - Seed data dummy per skenario
 - Skenario: Kedai Kopi, Laundry, Fashion UMKM, Warung Makan
 - Guided demo overlay
 - Reset tanpa merusak data lain
 
-### 🔐 Security & Fallback
+### ðŸ” Security & Fallback
 - JWT auth dengan tenant isolation
 - Automatic fallback: AI/WhatsApp/Storage
 - Secret scanner built-in
@@ -174,27 +174,27 @@ BizPilot AI adalah **AI-powered Business Operating System** yang dirancang khusu
 
 ---
 
-## 🎬 Demo Mode — Untuk Juri
+## ðŸŽ¬ Demo Mode â€” Untuk Juri
 
 **Cara cepat memulai demo:**
 
 1. Buka aplikasi dan login/register
 2. Klik tombol **"Start Judge Demo"** (floating button di dashboard)
 3. Pilih skenario bisnis:
-   - ☕ **Kedai Kopi** — F&B cafe dengan data penjualan dan inventory
-   - 👔 **Laundry** — Jasa laundry dengan CRM dan notifikasi
-   - 👗 **Fashion UMKM** — Toko fashion dengan leads pipeline
-   - 🍜 **Warung Makan** — Warung dengan risiko stok dan forecasting
+   - â˜• **Kedai Kopi** â€” F&B cafe dengan data penjualan dan inventory
+   - ðŸ‘” **Laundry** â€” Jasa laundry dengan CRM dan notifikasi
+   - ðŸ‘— **Fashion UMKM** â€” Toko fashion dengan leads pipeline
+   - ðŸœ **Warung Makan** â€” Warung dengan risiko stok dan forecasting
 4. Data dummy langsung ter-seed ke workspace aktif
 5. Ikuti guided overlay untuk tour semua fitur
 
-> **Catatan:** Demo mode aman — hanya mengisi workspace aktif Anda, tidak menyentuh tenant lain.
+> **Catatan:** Demo mode aman â€” hanya mengisi workspace aktif Anda, tidak menyentuh tenant lain.
 
 Lihat panduan lengkap di [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
 ---
 
-## 📸 Screenshots
+## ðŸ“¸ Screenshots
 
 | Feature | Preview |
 |---------|---------|
@@ -212,7 +212,7 @@ Lihat panduan lengkap di [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
 ---
 
-## ⚡ Local Setup
+## âš¡ Local Setup
 
 ```bash
 # 1. Clone repository
@@ -224,7 +224,7 @@ npm install
 
 # 3. Setup environment
 cp .env.example .env
-# Edit .env — isi minimal GEMINI_API_KEY dan JWT_SECRET
+# Edit .env â€” isi minimal GEMINI_API_KEY dan JWT_SECRET
 
 # 4. Run development server
 npm run dev
@@ -235,22 +235,22 @@ npm run build
 npm run start
 ```
 
-**Fallback Mode** — Jika env belum lengkap, aplikasi tetap berjalan:
-- Tanpa `GEMINI_API_KEY` → **AI Disabled mode** (analisis tidak tersedia)
-- Tanpa Supabase keys → **Local JSON Storage mode** (data tersimpan di file lokal)
-- Tanpa WhatsApp keys → **Simulation mode** (pesan tidak dikirim, hanya ditampilkan)
+**Fallback Mode** â€” Jika env belum lengkap, aplikasi tetap berjalan:
+- Tanpa `GEMINI_API_KEY` â†’ **AI Disabled mode** (analisis tidak tersedia)
+- Tanpa Supabase keys â†’ **Database unavailable mode** (backend gagal aman, frontend queue retry via IndexedDB)
+- Tanpa WhatsApp keys â†’ **Simulation mode** (pesan tidak dikirim, hanya ditampilkan)
 
 ---
 
-## 🔐 Environment Variables
+## ðŸ” Environment Variables
 
 | Variable | Keterangan | Wajib |
 |----------|-----------|-------|
 | `GEMINI_API_KEY` | Google Gemini API key untuk fitur AI | Opsional (AI Disabled jika kosong) |
 | `JWT_SECRET` | Secret JWT auth, minimal 32 karakter random | Disarankan untuk production |
 | `APP_URL` | URL publik aplikasi | Opsional |
-| `SUPABASE_URL` | URL project Supabase | Opsional (Local JSON jika kosong) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase | Opsional |
+| `SUPABASE_URL` | URL project Supabase | Wajib untuk data bisnis |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase | Wajib untuk data bisnis |
 | `VITE_SUPABASE_URL` | Supabase URL untuk frontend client | Opsional |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key untuk frontend | Opsional |
 | `WHATSAPP_API_URL` | Endpoint WhatsApp provider (Fonnte) | Opsional (Simulation jika kosong) |
@@ -258,11 +258,11 @@ npm run start
 | `WHATSAPP_PHONE_NUMBER` | Nomor pengirim WhatsApp | Opsional |
 | `PORT` | Port server (default: 8080) | Opsional |
 
-> ⚠️ **Jangan pernah commit file `.env` ke Git.** Gunakan `.env.example` sebagai template.
+> âš ï¸ **Jangan pernah commit file `.env` ke Git.** Gunakan `.env.example` sebagai template.
 
 ---
 
-## 🚀 Deployment
+## ðŸš€ Deployment
 
 ### Docker
 
@@ -306,7 +306,7 @@ Lihat panduan lengkap di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 
-## 🔧 Quality Scripts
+## ðŸ”§ Quality Scripts
 
 ```bash
 npm run lint          # TypeScript type check
@@ -314,7 +314,7 @@ npm run typecheck     # TypeScript type check (alias)
 npm run build         # Production build (Vite + esbuild server)
 npm run security:scan # Secret & env safety scan
 npm run qa:check      # Full QA: lint + typecheck + build + security scan
-npm run analyze       # Bundle analysis → dist/stats.html
+npm run analyze       # Bundle analysis â†’ dist/stats.html
 ```
 
 ### Health Endpoints
@@ -327,24 +327,24 @@ npm run analyze       # Bundle analysis → dist/stats.html
 
 ---
 
-## 🗺️ Roadmap
+## ðŸ—ºï¸ Roadmap
 
-- [ ] **Payment Integration** — Midtrans/Xendit untuk subscription SaaS
-- [ ] **WhatsApp Cloud API** — Integrasi webhook resmi Meta WhatsApp Business
-- [ ] **POS Integration** — Sinkronisasi dengan sistem kasir populer
-- [ ] **Marketplace Sync** — Tokopedia/Shopee order sync
-- [ ] **Advanced Forecasting** — ML model untuk prediksi lebih akurat
-- [ ] **Mobile App** — React Native wrapper atau Capacitor
-- [ ] **Multi-language** — Dukungan bahasa Inggris penuh
-- [ ] **Audit Log** — Log lengkap semua aksi user per tenant
+- [ ] **Payment Integration** â€” Midtrans/Xendit untuk subscription SaaS
+- [ ] **WhatsApp Cloud API** â€” Integrasi webhook resmi Meta WhatsApp Business
+- [ ] **POS Integration** â€” Sinkronisasi dengan sistem kasir populer
+- [ ] **Marketplace Sync** â€” Tokopedia/Shopee order sync
+- [ ] **Advanced Forecasting** â€” ML model untuk prediksi lebih akurat
+- [ ] **Mobile App** â€” React Native wrapper atau Capacitor
+- [ ] **Multi-language** â€” Dukungan bahasa Inggris penuh
+- [ ] **Audit Log** â€” Log lengkap semua aksi user per tenant
 
 ---
 
-## 📋 Documentation
+## ðŸ“‹ Documentation
 
 | Dokumen | Deskripsi |
 |---------|----------|
-| [DEMO_GUIDE.md](docs/DEMO_GUIDE.md) | Panduan demo untuk juri — script 5 menit |
+| [DEMO_GUIDE.md](docs/DEMO_GUIDE.md) | Panduan demo untuk juri â€” script 5 menit |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Panduan deployment Docker & Cloud Run |
 | [SECURITY.md](docs/SECURITY.md) | Secret handling, tenant isolation, RBAC |
 | [PERFORMANCE.md](docs/PERFORMANCE.md) | Bundle optimization, lazy loading, PWA cache |
@@ -353,18 +353,19 @@ npm run analyze       # Bundle analysis → dist/stats.html
 
 ---
 
-## 👨‍💻 Creator
+## ðŸ‘¨â€ðŸ’» Creator
 
 Built and developed independently by **[Chairul Fitra Ramadhan](https://github.com/ch-fitra)**.
 
 *Independent Developer | AI Engineer | Builder of BizPilot AI*
 
 Powered by:
-- 🤖 [Google Gemini AI](https://deepmind.google/technologies/gemini/) — Intelligence layer
-- 🗄️ [Supabase](https://supabase.com/) — Database & auth infrastructure
-- ⚛️ [React](https://react.dev/) — UI framework
-- ☁️ [Google Cloud Run](https://cloud.google.com/run) — Serverless deployment
+- ðŸ¤– [Google Gemini AI](https://deepmind.google/technologies/gemini/) â€” Intelligence layer
+- ðŸ—„ï¸ [Supabase](https://supabase.com/) â€” Database & auth infrastructure
+- âš›ï¸ [React](https://react.dev/) â€” UI framework
+- â˜ï¸ [Google Cloud Run](https://cloud.google.com/run) â€” Serverless deployment
 
 ---
 
-*BizPilot AI — Empowering Indonesian UMKM with AI-driven business intelligence.*
+*BizPilot AI â€” Empowering Indonesian UMKM with AI-driven business intelligence.*
+

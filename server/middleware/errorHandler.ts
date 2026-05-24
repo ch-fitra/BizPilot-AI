@@ -7,6 +7,7 @@ function statusToCode(statusCode: number): string {
   if (statusCode === 404) return 'NOT_FOUND';
   if (statusCode === 409) return 'CONFLICT';
   if (statusCode === 422) return 'VALIDATION_ERROR';
+  if (statusCode === 503) return 'DATABASE_UNAVAILABLE';
   if (statusCode >= 500) return 'INTERNAL_SERVER_ERROR';
   return 'REQUEST_FAILED';
 }

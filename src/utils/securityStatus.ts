@@ -6,7 +6,7 @@ export interface SecurityStatus {
   modes: {
     ai: 'enabled' | 'disabled';
     whatsapp: 'live' | 'simulation';
-    storage: 'supabase-postgres' | 'local-json';
+    storage: 'supabase-postgres' | 'unavailable';
   };
 }
 

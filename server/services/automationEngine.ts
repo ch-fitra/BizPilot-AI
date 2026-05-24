@@ -14,7 +14,10 @@ export class AutomationEngine {
     if (this.isRunning) return { triggeredCount: 0 };
     this.isRunning = true;
 
-    const bid = businessId || 'local_profile_id';
+    const bid = businessId;
+    if (!bid) {
+      throw new Error('Workspace bisnis aktif wajib tersedia untuk menjalankan automasi.');
+    }
     let triggeredCount = 0;
 
     try {
@@ -27,11 +30,8 @@ export class AutomationEngine {
 
       // 3. Fetch resources
       const leads = await CRMLeadRepository.getAll(bid);
-      const histories = await AnalysisHistoryRepository.getAll();
-      
-      // Filter histories by business_id if possible
-      const myHistories = histories.filter(h => !bid || h.business_id === bid || h.business_id === 'local_profile_id');
-      const latestAnalysis = myHistories.length > 0 ? myHistories[0] : null;
+      const histories = await AnalysisHistoryRepository.getAll(bid);
+      const latestAnalysis = histories.length > 0 ? histories[0] : null;
 
       for (const rule of activeRules) {
         
@@ -168,15 +168,17 @@ export class AutomationEngine {
    * Generates a daily executive summary report for the dashboard
    */
   static async generateDailySummary(businessId?: string | null): Promise<NotificationRecord | null> {
-    const bid = businessId || 'local_profile_id';
+    const bid = businessId;
+    if (!bid) {
+      throw new Error('Workspace bisnis aktif wajib tersedia untuk membuat ringkasan harian.');
+    }
     try {
       const leads = await CRMLeadRepository.getAll(bid);
       const activeLeads = leads.filter(l => l.pipeline_stage !== 'Won' && l.pipeline_stage !== 'Lost');
       const hotLeads = activeLeads.filter(l => l.interest_level === 'Hot').length;
       
-      const histories = await AnalysisHistoryRepository.getAll();
-      const myHistories = histories.filter(h => !bid || h.business_id === bid || h.business_id === 'local_profile_id');
-      const latestAnalysis = myHistories.length > 0 ? myHistories[0] : null;
+      const histories = await AnalysisHistoryRepository.getAll(bid);
+      const latestAnalysis = histories.length > 0 ? histories[0] : null;
 
       const totalActiveValue = activeLeads.reduce((su, l) => su + Number(l.estimated_value || 0), 0);
       const criticalStockCount = latestAnalysis 

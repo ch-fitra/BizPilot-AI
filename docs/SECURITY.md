@@ -1,4 +1,4 @@
-# 🔐 Security Guide — BizPilot AI
+﻿# ðŸ” Security Guide â€” BizPilot AI
 
 > Panduan keamanan, secret handling, tenant isolation, dan RBAC.
 
@@ -9,7 +9,7 @@
 ### Prinsip Utama
 - **Tidak ada API key, token, atau secret yang boleh di-commit ke Git.**
 - Semua secret dikelola melalui environment variables (`.env` lokal atau Cloud Run env vars).
-- File `.env.example` hanya berisi placeholder — tidak pernah berisi nilai asli.
+- File `.env.example` hanya berisi placeholder â€” tidak pernah berisi nilai asli.
 
 ### Environment Variables yang Sensitif
 
@@ -21,7 +21,7 @@
 | `WHATSAPP_API_TOKEN` | Spam message, reputasi nomor rusak | Server-side only, jangan expose ke client |
 
 ### Jika Secret Bocor
-1. **Rotate segera** — generate key/token baru dari provider.
+1. **Rotate segera** â€” generate key/token baru dari provider.
 2. Hapus key lama dari semua environment.
 3. Periksa Git history: `git log --all -p -- .env` untuk memastikan tidak ada commit yang berisi secret.
 4. Jika sudah ter-commit, gunakan `git filter-branch` atau BFG Repo-Cleaner.
@@ -31,7 +31,7 @@
 ## 2. JWT Authentication
 
 ### Implementasi
-- User login → server generate JWT token dengan payload `{userId, email, workspaceId}`.
+- User login â†’ server generate JWT token dengan payload `{userId, email, workspaceId}`.
 - Token dikirim sebagai `Authorization: Bearer <token>` header di setiap request.
 - `authMiddleware` mem-verify token di setiap protected route.
 
@@ -42,14 +42,14 @@
 
 ### Best Practice
 - Jangan simpan JWT di `localStorage` untuk production high-security (pertimbangkan `httpOnly` cookie di masa depan).
-- Token memiliki expiry time — user harus re-login setelah expired.
+- Token memiliki expiry time â€” user harus re-login setelah expired.
 
 ---
 
 ## 3. Supabase Service Role Safety
 
 ### Risiko
-`SUPABASE_SERVICE_ROLE_KEY` memiliki akses penuh ke database — **melewati Row Level Security (RLS)**. Jika bocor, attacker bisa membaca/menulis semua data di database.
+`SUPABASE_SERVICE_ROLE_KEY` memiliki akses penuh ke database â€” **melewati Row Level Security (RLS)**. Jika bocor, attacker bisa membaca/menulis semua data di database.
 
 ### Penanganan
 - **Hanya digunakan di backend** (`server/db/supabaseClient.ts`).
@@ -62,13 +62,13 @@
 
 ### Multi-Tenant Architecture
 - Setiap user bisa memiliki banyak workspace (tenant).
-- Setiap request diverifikasi: user → workspace membership → role check.
+- Setiap request diverifikasi: user â†’ workspace membership â†’ role check.
 
 ### Enforcement
-1. **Auth Middleware** — Verifikasi JWT token dan extract userId.
-2. **Tenant Middleware** — Verifikasi bahwa user adalah anggota workspace yang diminta.
-3. **Server-side Override** — Client-supplied `business_id` di-override oleh verified session workspace. Client tidak bisa mengakses data tenant lain.
-4. **Demo Isolation** — Demo seeding dan reset hanya beroperasi di workspace aktif.
+1. **Auth Middleware** â€” Verifikasi JWT token dan extract userId.
+2. **Tenant Middleware** â€” Verifikasi bahwa user adalah anggota workspace yang diminta.
+3. **Server-side Override** â€” Client-supplied `business_id` di-override oleh verified session workspace. Client tidak bisa mengakses data tenant lain.
+4. **Demo Isolation** â€” Demo seeding dan reset hanya beroperasi di workspace aktif.
 
 ### Scope per Tenant
 Data berikut ter-isolasi per workspace:
@@ -85,10 +85,10 @@ Data berikut ter-isolasi per workspace:
 
 | Role | Read | Write | Delete | Manage Team | Admin Actions |
 |------|------|-------|--------|-------------|---------------|
-| **Viewer** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Staff** | ✅ | ✅ | Limited | ❌ | ❌ |
-| **Admin** | ✅ | ✅ | ✅ | ✅ | Limited |
-| **Owner** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Viewer** | âœ… | âŒ | âŒ | âŒ | âŒ |
+| **Staff** | âœ… | âœ… | Limited | âŒ | âŒ |
+| **Admin** | âœ… | âœ… | âœ… | âœ… | Limited |
+| **Owner** | âœ… | âœ… | âœ… | âœ… | âœ… |
 
 - Viewer: read-only, tidak bisa menghapus atau trigger operasi privileged.
 - Staff: akses edit operasional, tidak bisa manage team atau hapus data protected.
@@ -97,19 +97,19 @@ Data berikut ter-isolasi per workspace:
 
 ---
 
-## 6. Local JSON Fallback — Limitasi Keamanan
+## 6. Database Fail-Safe Mode
 
-Jika Supabase tidak dikonfigurasi, aplikasi menggunakan **Local JSON Storage**:
+Local JSON persistence sudah dinonaktifkan untuk data bisnis. Jika Supabase tidak sehat atau belum dikonfigurasi, backend tidak membaca/menulis file JSON dan endpoint data akan gagal aman dengan status 503.
 
-| Aspek | Supabase Mode | Local JSON Mode |
-|-------|---------------|-----------------|
-| Data persistence | PostgreSQL (cloud) | File JSON di server |
-| Multi-user | ✅ Full support | ⚠️ Single server only |
-| Data encryption at rest | ✅ Supabase managed | ❌ Plain JSON files |
-| Backup | ✅ Supabase automated | ❌ Manual only |
-| RLS policies | ✅ Database-level | ❌ App-level only |
+| Aspek | Supabase Mode | Degraded Mode |
+|-------|---------------|---------------|
+| Data persistence | PostgreSQL cloud | Tidak ada server-local write |
+| Multi-user | Full support | Mutasi ditolak aman |
+| Backup | Supabase automated | Tidak berlaku |
+| RLS policies | Database-level | Tidak ada akses data |
+| Offline user action | IndexedDB queue di browser | Retry otomatis saat online/server sehat |
 
-> **Rekomendasi:** Gunakan Local JSON mode hanya untuk development dan demo. Production **harus** menggunakan Supabase PostgreSQL.
+> **Rekomendasi:** Supabase PostgreSQL wajib tersedia sebelum production menerima transaksi pengguna.
 
 ---
 
@@ -121,7 +121,7 @@ Jika Supabase tidak dikonfigurasi, aplikasi menggunakan **Local JSON Storage**:
 ### Penanganan
 - Token hanya digunakan di backend (`server/routes/notifications.ts`).
 - Tidak pernah dikirim ke frontend.
-- Jika token tidak diset → **Simulation Mode** aktif otomatis (pesan dibuat tapi tidak dikirim).
+- Jika token tidak diset â†’ **Simulation Mode** aktif otomatis (pesan dibuat tapi tidak dikirim).
 - Rate limiting dan validasi pesan dilakukan di backend sebelum pengiriman.
 
 ---
@@ -188,7 +188,7 @@ Response:
     "modes": {
       "ai": "enabled",
       "whatsapp": "simulation",
-      "storage": "local-json"
+      "storage": "unavailable"
     }
   }
 }
@@ -199,3 +199,4 @@ Gunakan endpoint ini untuk memverifikasi status keamanan sistem setelah deployme
 ---
 
 *Untuk deployment, lihat [DEPLOYMENT.md](DEPLOYMENT.md). Untuk performance, lihat [PERFORMANCE.md](PERFORMANCE.md).*
+

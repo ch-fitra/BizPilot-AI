@@ -10,8 +10,11 @@ coverage/
 .env
 .env.*
 !.env.example
+*.pem
+secrets/
+service-account*.json
 
-# Local runtime JSON data (auto-generated, tenant-specific)
+# Legacy local runtime JSON data (must never be committed)
 server/data/*.json
 forecast_snapshots.json
 
@@ -29,7 +32,7 @@ Thumbs.db
 
 # Note: supabase/migrations/ and docs/ are intentionally tracked
 
-# Local JSON fallback runtime data
+# Legacy server-local runtime data
 business_members.json
 business_profile.json
 crm_activities.json

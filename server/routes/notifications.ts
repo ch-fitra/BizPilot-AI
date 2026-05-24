@@ -6,6 +6,7 @@ import { AutomationEngine } from '../services/automationEngine';
 import { WhatsAppProviderService } from '../services/whatsappProvider';
 import { AIMessageGenerator } from '../services/aiMessageGenerator';
 import { enforceRole } from '../middleware/roleGuard';
+import { CRMLeadRepository } from '../repositories/crmLeadRepository';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const router = express.Router();
 // GET /api/notifications -> Retrieve all notifications for a business
 router.get('/notifications', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     
     // Automatically trigger on-demand sweep & daily summary to keep everything freshly live!
     await AutomationEngine.runSweep(businessId);
@@ -26,18 +27,18 @@ router.get('/notifications', async (req, res) => {
     res.json({ success: true, notifications: list });
   } catch (err: any) {
     console.error('Error fetching notifications:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // POST /api/notifications -> Manually trigger notification creation or run live sweep
 router.post('/notifications', enforceRole('edit'), async (req, res) => {
   try {
-    const { business_id, type, title, message, priority, metadata } = req.body;
+    const { type, title, message, priority, metadata } = req.body;
+    const businessId = (req as any).businessId || null;
     
     if (!type || !title || !message) {
       // If we called simple empty POST, trigger a sweep check
-      const businessId = business_id || null;
       const { triggeredCount } = await AutomationEngine.runSweep(businessId);
       await AutomationEngine.generateDailySummary(businessId);
       const list = await NotificationRepository.getAll(businessId);
@@ -49,7 +50,7 @@ router.post('/notifications', enforceRole('edit'), async (req, res) => {
     }
 
     const created = await NotificationRepository.create({
-      business_id: business_id || null,
+      business_id: businessId,
       type,
       title,
       message,
@@ -59,18 +60,18 @@ router.post('/notifications', enforceRole('edit'), async (req, res) => {
 
     res.json({ success: true, notification: created });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // POST /api/notifications/read-all -> Mark all as read
 router.post('/notifications/read-all', async (req, res) => {
   try {
-    const businessId = (req.body.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     await NotificationRepository.markAllAsRead(businessId);
     res.json({ success: true, message: 'All notifications marked as read' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -78,18 +79,18 @@ router.post('/notifications/read-all', async (req, res) => {
 router.patch('/notifications/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    const businessId = (req.query.business_id as string) || (req as any).businessId || null;
+    const businessId = (req as any).businessId || null;
     const existing = (await NotificationRepository.getAll(businessId)).find((notification) => notification.id === id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Notification not found' });
     }
-    const updated = await NotificationRepository.markAsRead(id);
+    const updated = await NotificationRepository.markAsRead(id, businessId);
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Notification not found' });
     }
     res.json({ success: true, notification: updated });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -97,18 +98,18 @@ router.patch('/notifications/:id/read', async (req, res) => {
 router.delete('/notifications/:id', enforceRole('delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const businessId = (req.query.business_id as string) || (req as any).businessId || null;
+    const businessId = (req as any).businessId || null;
     const existing = (await NotificationRepository.getAll(businessId)).find((notification) => notification.id === id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Notification not found or delete failed' });
     }
-    const success = await NotificationRepository.delete(id);
+    const success = await NotificationRepository.delete(id, businessId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Notification not found or delete failed' });
     }
     res.json({ success: true, message: 'Notification deleted successfully' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -119,25 +120,26 @@ router.delete('/notifications/:id', enforceRole('delete'), async (req, res) => {
 // GET /api/automation/rules -> Fetch all automation rules
 router.get('/automation/rules', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     const rules = await AutomationRepository.getAll(businessId);
     res.json({ success: true, rules });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // POST /api/automation/rules -> Add a new rule
 router.post('/automation/rules', enforceRole('edit'), async (req, res) => {
   try {
-    const { business_id, rule_type, is_active, trigger_config, action_config } = req.body;
+    const { rule_type, is_active, trigger_config, action_config } = req.body;
+    const businessId = (req as any).businessId || null;
     
     if (!rule_type) {
       return res.status(400).json({ success: false, error: 'rule_type is required' });
     }
 
     const created = await AutomationRepository.create({
-      business_id: business_id || null,
+      business_id: businessId,
       rule_type,
       is_active: is_active ?? true,
       trigger_config: trigger_config || {},
@@ -146,7 +148,7 @@ router.post('/automation/rules', enforceRole('edit'), async (req, res) => {
 
     res.json({ success: true, rule: created });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -155,13 +157,14 @@ router.put('/automation/rules/:id', enforceRole('edit'), async (req, res) => {
   try {
     const { id } = req.params;
     const { rule_type, is_active, trigger_config, action_config } = req.body;
+    const businessId = (req as any).businessId || null;
 
     const updated = await AutomationRepository.update(id, {
       rule_type,
       is_active,
       trigger_config,
       action_config
-    });
+    }, businessId);
 
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Automation rule not found' });
@@ -169,7 +172,7 @@ router.put('/automation/rules/:id', enforceRole('edit'), async (req, res) => {
 
     res.json({ success: true, rule: updated });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -177,13 +180,14 @@ router.put('/automation/rules/:id', enforceRole('edit'), async (req, res) => {
 router.delete('/automation/rules/:id', enforceRole('delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const success = await AutomationRepository.delete(id);
+    const businessId = (req as any).businessId || null;
+    const success = await AutomationRepository.delete(id, businessId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Rule not found' });
     }
     res.json({ success: true, message: 'Automation rule deleted' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -194,7 +198,8 @@ router.delete('/automation/rules/:id', enforceRole('delete'), async (req, res) =
 // POST /api/whatsapp/send -> Enqueue/Dispatch WhatsApp message
 router.post('/whatsapp/send', enforceRole('edit'), async (req, res) => {
   try {
-    const { recipient, message, business_id } = req.body;
+    const { recipient, message } = req.body;
+    const businessId = (req as any).businessId || null;
 
     if (!recipient || !message) {
       return res.status(400).json({ success: false, error: 'recipient and message are required' });
@@ -203,23 +208,23 @@ router.post('/whatsapp/send', enforceRole('edit'), async (req, res) => {
     const dispatchResult = await WhatsAppProviderService.sendMessage({
       recipient,
       message,
-      business_id: business_id || null
+      business_id: businessId
     });
 
     res.json(dispatchResult);
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // GET /api/whatsapp/logs -> Get history of all dispatched WhatsApp logs
 router.get('/whatsapp/logs', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     const logs = await WhatsAppLogRepository.getAll(businessId);
     res.json({ success: true, logs });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -244,30 +249,44 @@ router.post('/whatsapp/generate-message', async (req, res) => {
 
     res.json({ success: true, message: output });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/crm/dashboard -> Endpoint needed by OverviewTab.tsx in Phase 6 changes, let's map it cleanly here in case!
+// GET /api/crm/dashboard -> Real-time CRM pipeline summary for Overview tab
 router.get('/crm/dashboard', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
-    const leads = await NotificationRepository.getAll(businessId); // dummy/real
-    
-    // Simple mock summaries for instant load
+    const businessId = (req as any).businessId || null;
+    const allLeads = await CRMLeadRepository.getAll(businessId);
+
+    const activeLeads = allLeads.filter(l => l.status === 'active');
+    const totalLeads = activeLeads.length;
+    const hotLeads = activeLeads.filter(l => l.interest_level === 'Hot').length;
+    const closedDeals = activeLeads.filter(l => l.pipeline_stage === 'Won').length;
+    const totalEstimatedRevenue = activeLeads.reduce((sum, l) => sum + (l.estimated_value || 0), 0);
+
+    // Pending follow-up: leads with next_follow_up date that has passed
+    const now = new Date();
+    const pendingFollowup = activeLeads.filter(l => {
+      if (!l.next_follow_up) return false;
+      return new Date(l.next_follow_up) < now && l.pipeline_stage !== 'Won' && l.pipeline_stage !== 'Lost';
+    }).length;
+
     res.json({
       success: true,
       stats: {
-        totalLeads: 12,
-        hotLeads: 3,
-        pendingFollowup: 2,
-        closedDeals: 4,
-        totalEstimatedRevenue: 24500000
-      }
+        totalLeads,
+        hotLeads,
+        pendingFollowup,
+        closedDeals,
+        totalEstimatedRevenue,
+      },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 export default router;
+
+

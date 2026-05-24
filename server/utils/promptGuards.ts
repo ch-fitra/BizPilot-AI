@@ -50,8 +50,7 @@ export function validateAndSanitizeInput(input: any): ValidateChatInput {
     if (typeof business_id !== 'string') {
       throw new Error('business_id must be a string.');
     }
-    // Only strictly validate with UUID if it is not a temporary local ID
-    if (business_id.includes('-') && !business_id.startsWith('local_') && !uuidRegex.test(business_id)) {
+    if (business_id.includes('-') && !uuidRegex.test(business_id)) {
       throw new Error('Invalid business_id UUID format.');
     }
   }
@@ -60,7 +59,7 @@ export function validateAndSanitizeInput(input: any): ValidateChatInput {
     if (typeof analysis_id !== 'string') {
       throw new Error('analysis_id must be a string.');
     }
-    if (analysis_id.includes('-') && !analysis_id.startsWith('local_') && !uuidRegex.test(analysis_id)) {
+    if (analysis_id.includes('-') && !uuidRegex.test(analysis_id)) {
       throw new Error('Invalid analysis_id UUID format.');
     }
   }

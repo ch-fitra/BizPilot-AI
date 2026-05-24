@@ -1,7 +1,7 @@
 import { BusinessHealthState } from '../types';
 
 export type AnalysisRiskLevel = 'Excellent' | 'Good' | 'Warning' | 'Critical';
-export type StorageMode = 'Supabase PostgreSQL' | 'Local JSON';
+export type StorageMode = 'Supabase PostgreSQL' | 'Unavailable';
 
 export interface BusinessProfile {
   id: string;

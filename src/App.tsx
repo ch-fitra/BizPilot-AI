@@ -27,6 +27,8 @@ import { AnalysisHistoryRecord, BusinessProfile } from './types/analysis';
 import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
 import PageLoadingFallback from './components/PageLoadingFallback';
+import { OfflineQueueService } from './services/offlineQueueService';
+import { SyncService } from './services/syncService';
 
 const AIAnalyzerTab = lazy(() => import('./components/AIAnalyzerTab'));
 const AIBusinessChatTab = lazy(() => import('./components/AIBusinessChatTab'));
@@ -42,6 +44,10 @@ const GuidedDemoOverlay = lazy(() => import('./components/GuidedDemoOverlay').th
 const TeamManagementTab = lazy(() => import('./components/TeamManagementTab').then((module) => ({ default: module.TeamManagementTab })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then((module) => ({ default: module.RegisterPage })));
+const OCRNotaTab = lazy(() => import('./components/OCRNotaTab'));
+const ProfitCashflowTab = lazy(() => import('./components/ProfitCashflowTab'));
+const BusinessMemoryTab = lazy(() => import('./components/BusinessMemoryTab'));
+const WarungModeTab = lazy(() => import('./components/WarungModeTab'));
 
 
 export default function App() {
@@ -100,10 +106,14 @@ export default function App() {
         setIsBackendHealthy(true);
       } else {
         setIsBackendHealthy(false);
+        setBannerType('error');
+        setErrorBanner(result?.message || 'Server sedang sibuk, data Anda aman dan akan dicoba kembali.');
       }
     } catch (err) {
       console.warn('Backend connection check failed: Offline or server offline.');
       setIsBackendHealthy(false);
+      setBannerType('error');
+      setErrorBanner('Server sedang sibuk, data Anda aman dan akan dicoba kembali.');
     }
   }, []);
 
@@ -254,10 +264,27 @@ export default function App() {
   // Saves the currently displayed active analysis results to the backend
   const handleSaveAnalysis = async () => {
     setIsSavingAnalysis(true);
-    try {
-      const totalSales = businessState.sales_data.reduce((sum, item) => sum + item.sales, 0);
-      const totalTransactions = businessState.sales_data.reduce((sum, item) => sum + item.transactions, 0);
+    const totalSales = businessState.sales_data.reduce((sum, item) => sum + item.sales, 0);
+    const totalTransactions = businessState.sales_data.reduce((sum, item) => sum + item.transactions, 0);
+    const savePayload = {
+      business_id: activeProfile?.id || null,
+      business_name: businessName,
+      business_type: businessType,
+      input_source: lastInputPayload?.fileData ? 'file' : (lastInputPayload?.textInput ? 'text' : 'demo'),
+      uploaded_file_name: lastInputPayload?.fileName || '',
+      raw_input_summary: lastInputPayload?.textInput || 'Analisis Multimodal Gambar/Berkas',
+      ai_result: businessState,
+      health_score: businessState.health_score,
+      total_sales: totalSales,
+      total_transactions: totalTransactions,
+      top_products: businessState.top_products,
+      inventory_alerts: businessState.alerts,
+      customer_sentiment: businessState.customer_reviews_summary?.[0]?.sentiment || 'neutral',
+      customer_reviews_summary: businessState.customer_reviews_summary || [],
+      action_plan: businessState.action_plan
+    };
 
+    try {
       const hasProfile = !!activeProfile;
 
       const response = await fetch('/api/analysis-history', {
@@ -265,23 +292,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          business_id: activeProfile?.id || null,
-          business_name: businessName,
-          business_type: businessType,
-          input_source: lastInputPayload?.fileData ? 'file' : (lastInputPayload?.textInput ? 'text' : 'demo'),
-          uploaded_file_name: lastInputPayload?.fileName || '',
-          raw_input_summary: lastInputPayload?.textInput || 'Analisis Multimodal Gambar/Berkas',
-          ai_result: businessState,
-          health_score: businessState.health_score,
-          total_sales: totalSales,
-          total_transactions: totalTransactions,
-          top_products: businessState.top_products,
-          inventory_alerts: businessState.alerts,
-          customer_sentiment: businessState.customer_reviews_summary?.[0]?.sentiment || 'neutral',
-          customer_reviews_summary: businessState.customer_reviews_summary || [],
-          action_plan: businessState.action_plan
-        }),
+        body: JSON.stringify(savePayload),
       });
 
       const result = await response.json();
@@ -297,12 +308,16 @@ export default function App() {
         }
         setTimeout(() => setErrorBanner(null), 8000);
       } else {
-        throw new Error(result.error || 'Server rejected creation of history item.');
+        throw new Error(result?.error?.message || result.error || 'Server rejected creation of history item.');
       }
     } catch (err: any) {
       console.error(err);
+      await OfflineQueueService.enqueue('save_analysis', savePayload);
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        void SyncService.syncAllPending();
+      }
       setBannerType('error');
-      setErrorBanner(err.message || 'Gagal tersambung ke penyimpanan database backend.');
+      setErrorBanner('Server sedang sibuk, data Anda aman dan akan dicoba kembali.');
     } finally {
       setIsSavingAnalysis(false);
     }
@@ -395,15 +410,7 @@ export default function App() {
       case 'overview':
         return (
           <OverviewTab 
-            businessState={businessState} 
-            onReset={handleResetDemo}
             setActiveTab={setActiveTab}
-            businessName={businessName}
-            isUnsavedAnalysis={isUnsavedAnalysis}
-            onSaveAnalysis={handleSaveAnalysis}
-            isSavingAnalysis={isSavingAnalysis}
-            isDemoActive={isDemoActive}
-            isEmptyState={isEmptyState}
             hasProfile={!!activeProfile}
           />
         );
@@ -442,6 +449,10 @@ export default function App() {
             setActiveTab={setActiveTab}
           />
         );
+      case 'ocr_nota':
+        return <OCRNotaTab setActiveTab={setActiveTab} />;
+      case 'profit_cashflow':
+        return <ProfitCashflowTab />;
       case 'ai_analyzer':
         return <AIAnalyzerTab onAnalyze={handleAnalyzeData} isLoading={isLoading} />;
       case 'chat':
@@ -455,6 +466,10 @@ export default function App() {
             setActiveTab={setActiveTab}
           />
         );
+      case 'business_memory':
+        return <BusinessMemoryTab />;
+      case 'warung_mode':
+        return <WarungModeTab />;
       case 'history':
         return (
           <AnalysisHistoryPage 
@@ -477,15 +492,8 @@ export default function App() {
       default:
         return (
           <OverviewTab 
-            businessState={businessState} 
-            onReset={handleResetDemo}
             setActiveTab={setActiveTab}
-            businessName={businessName}
-            isUnsavedAnalysis={isUnsavedAnalysis}
-            onSaveAnalysis={handleSaveAnalysis}
-            isSavingAnalysis={isSavingAnalysis}
-            isDemoActive={isDemoActive}
-            isEmptyState={isEmptyState}
+            hasProfile={!!activeProfile}
           />
         );
     }

@@ -51,7 +51,7 @@ export class CRMService {
     }
 
     try {
-      const queue = OfflineQueueService.getQueue();
+      const queue = await OfflineQueueService.getQueue();
       const createDrafts = queue
         .filter(item => item.action === 'create_crm_lead')
         .map(item => {
@@ -128,7 +128,7 @@ export class CRMService {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
     if (!isOnline) {
       console.log('Device is offline. Safe-enqueuing Lead draft in-memory.');
-      const item = OfflineQueueService.enqueue('create_crm_lead', lead);
+      const item = await OfflineQueueService.enqueue('create_crm_lead', lead);
       const draft: CRMLead = {
         id: item.id,
         lead_name: lead.lead_name,
@@ -165,7 +165,7 @@ export class CRMService {
       return data.data;
     } catch (error: any) {
       console.warn('CRMService: Error creating lead, falling back to local queue:', error);
-      const item = OfflineQueueService.enqueue('create_crm_lead', lead);
+      const item = await OfflineQueueService.enqueue('create_crm_lead', lead);
       const draft: CRMLead = {
         id: item.id,
         lead_name: lead.lead_name,
@@ -196,11 +196,11 @@ export class CRMService {
     
     // Check if it's already a local draft. If so, update the payload inside the queue instead of posting!
     if (id.startsWith('off_q_')) {
-      const queue = OfflineQueueService.getQueue();
+      const queue = await OfflineQueueService.getQueue();
       const idx = queue.findIndex(i => i.id === id);
       if (idx !== -1 && queue[idx].action === 'create_crm_lead') {
         queue[idx].payload = { ...queue[idx].payload, ...updates };
-        OfflineQueueService.saveQueue(queue);
+        await OfflineQueueService.saveQueue(queue);
         window.dispatchEvent(new CustomEvent('bizpilot-leads-updated'));
         return {
           id,
@@ -213,7 +213,7 @@ export class CRMService {
 
     if (!isOnline) {
       console.log('Device is offline. Enqueuing Lead stage updates.');
-      OfflineQueueService.enqueue('update_crm_stage', { id, updates });
+      await OfflineQueueService.enqueue('update_crm_stage', { id, updates });
       window.dispatchEvent(new CustomEvent('bizpilot-leads-updated'));
       return {
         id,
@@ -238,7 +238,7 @@ export class CRMService {
       return data.data;
     } catch (error: any) {
       console.warn(`CRMService: Error updating lead ${id}, falling back to local queue:`, error);
-      OfflineQueueService.enqueue('update_crm_stage', { id, updates });
+      await OfflineQueueService.enqueue('update_crm_stage', { id, updates });
       window.dispatchEvent(new CustomEvent('bizpilot-leads-updated'));
       return {
         id,

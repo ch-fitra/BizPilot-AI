@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Building2, 
@@ -47,7 +47,7 @@ export default function SettingsTab({
   const [description, setDescription] = useState<string>('');
 
   // Diagnostic states
-  const [storageMode, setStorageMode] = useState<StorageMode>('Local JSON');
+  const [storageMode, setStorageMode] = useState<StorageMode>('Unavailable');
   const [isSupabaseConfigured, setIsSupabaseConfigured] = useState<boolean>(false);
   const [isSchemaMissing, setIsSchemaMissing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -184,7 +184,7 @@ export default function SettingsTab({
         setOriginalRecord(result.data);
         applyProfileToState(result.data);
         onProfileUpdated(result.data);
-        triggerSuccessMessage('✓ Profil bisnis berhasil diperbarui secara permanen di database!');
+        triggerSuccessMessage('âœ“ Profil bisnis berhasil diperbarui secara permanen di database!');
       } else {
         throw new Error(result.error || 'Server error saving profile.');
       }
@@ -276,12 +276,12 @@ export default function SettingsTab({
                     onChange={(e) => setBusinessType(e.target.value)}
                     className="w-full bg-[#0a0d16] border border-slate-800 rounded-xl px-2.5 py-2.5 text-slate-355 text-xs cursor-pointer focus:outline-none text-slate-200"
                   >
-                    <option value="F&B Cafe">☕ F&B Cafe / Kedai Kopi</option>
-                    <option value="Retail Fashion">👚 Retail Fashion / Butik</option>
-                    <option value="Laundry Services">🧺 Laundry Kiloan / Jasa Cuci</option>
-                    <option value="Grocery Store">🛒 Toko Kelontong / Sembako</option>
-                    <option value="Culiner Local">🥗 Kuliner / Warung Makan</option>
-                    <option value="General Service">⚡ Jasa Lainnya / Umum</option>
+                    <option value="F&B Cafe">â˜• F&B Cafe / Kedai Kopi</option>
+                    <option value="Retail Fashion">ðŸ‘š Retail Fashion / Butik</option>
+                    <option value="Laundry Services">ðŸ§º Laundry Kiloan / Jasa Cuci</option>
+                    <option value="Grocery Store">ðŸ›’ Toko Kelontong / Sembako</option>
+                    <option value="Culiner Local">ðŸ¥— Kuliner / Warung Makan</option>
+                    <option value="General Service">âš¡ Jasa Lainnya / Umum</option>
                   </select>
                 </div>
 
@@ -421,9 +421,9 @@ export default function SettingsTab({
                   </div>
                   
                   <span className="text-[10px] text-slate-400 block leading-relaxed pt-1.5 border-t border-slate-900 leading-relaxed font-sans">
-                    {isSupabaseConfigured 
-                      ? '✓ Database Cloud PostgreSQL terpasang penuh. Informasi profil, log data analisis, dan relasi multi-tabel disimpan aman di Supabase.'
-                      : 'ℹ Berjalan dalam mode local fallback. Semua profil serta tumpukan riwayat analisis disimpan ke memory file lokal serverside (history.json).'}
+                    {isSupabaseConfigured
+                      ? 'Database Cloud PostgreSQL terpasang. Jika koneksi sedang sibuk, sistem akan gagal aman tanpa menyimpan data bisnis ke file lokal server.'
+                      : 'Supabase belum terkonfigurasi. Penyimpanan lokal server dinonaktifkan untuk mencegah kehilangan data di Cloud Run.'}
                   </span>
                    {/* Status 2: Supabase Connection Badge */}
                 <div className="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-900 flex justify-between items-center gap-3">
@@ -438,7 +438,7 @@ export default function SettingsTab({
                       ? (isSchemaMissing ? 'bg-amber-500/10 border border-amber-500/30 text-amber-450 text-amber-400' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 text-emerald-400')
                       : 'bg-amber-500/10 border border-amber-500/30 text-amber-450 text-amber-400'
                   }`}>
-                    {isSupabaseConfigured ? (isSchemaMissing ? 'MIGRATE SQL' : 'SUPABASE') : 'LOCAL CACHE'}
+                    {isSupabaseConfigured ? (isSchemaMissing ? 'MIGRATE SQL' : 'SUPABASE') : 'DB REQUIRED'}
                   </span>
                 </div>
 
@@ -563,7 +563,7 @@ export default function SettingsTab({
                       <div className="rounded-xl border border-slate-850 bg-slate-950/40 p-3">
                         <span className="text-[9px] text-slate-500 font-mono uppercase">Storage</span>
                         <p className="text-xs font-bold text-slate-200 mt-1">
-                          {securityStatus.modes.storage === 'supabase-postgres' ? 'Supabase' : 'Local JSON'}
+                          {securityStatus.modes.storage === 'supabase-postgres' ? 'Supabase' : 'Unavailable'}
                         </p>
                       </div>
                     </div>
@@ -593,7 +593,7 @@ export default function SettingsTab({
                 <HelpCircle className="w-4 h-4 text-indigo-400" /> Mengaktifkan Supabase Database
               </h4>
               <p className="text-[11px] leading-relaxed text-slate-450 font-sans text-left">
-                Untuk beralih ke database PostgreSQL, konfigurasikan variabel rahasia <span className="font-mono text-indigo-300">SUPABASE_URL</span> dan <span className="font-mono text-indigo-300">SUPABASE_SERVICE_ROLE_KEY</span> di Settings / panel rahasia lingkungan Anda.
+                BizPilot sekarang wajib memakai PostgreSQL untuk data bisnis. Konfigurasikan <span className="font-mono text-indigo-300">SUPABASE_URL</span> dan <span className="font-mono text-indigo-300">SUPABASE_SERVICE_ROLE_KEY</span> sebelum menerima transaksi pengguna.
               </p>
             </div>
 
@@ -605,3 +605,4 @@ export default function SettingsTab({
     </div>
   );
 }
+

@@ -1,509 +1,118 @@
 import React from 'react';
-import { 
-  DollarSign, 
-  ShoppingCart, 
-  PackageCheck, 
-  AlertOctagon, 
-  Sparkles, 
-  ChevronRight, 
-  ArrowUpRight,
-  TrendingUp,
-  TrendingDown,
-  Building,
-  RefreshCw,
-  Clock,
-  Users
-} from 'lucide-react';
-import { BusinessHealthState } from '../types';
-import HealthScoreCard from './HealthScoreCard';
+import { AlertTriangle, CheckCircle2, MessageSquare, Mic, Receipt, Sparkles } from 'lucide-react';
+import DashboardSkeleton from './skeletons/DashboardSkeleton';
+import { PassiveIntelligenceClient } from '../services/passiveIntelligenceService';
 
 interface OverviewTabProps {
-  businessState: BusinessHealthState;
-  onReset: () => void;
   setActiveTab: (tab: string) => void;
-  businessName: string;
-  isUnsavedAnalysis?: boolean;
-  onSaveAnalysis?: () => Promise<void>;
-  isSavingAnalysis?: boolean;
-  isDemoActive?: boolean;
-  isEmptyState?: boolean;
   hasProfile?: boolean;
 }
 
-export default function OverviewTab({
-  businessState,
-  onReset,
-  setActiveTab,
-  businessName,
-  isUnsavedAnalysis = false,
-  onSaveAnalysis,
-  isSavingAnalysis = false,
-  isDemoActive = false,
-  isEmptyState = false,
-  hasProfile = true
-}: OverviewTabProps) {
-  
-  const [crmStats, setCrmStats] = React.useState<any>(null);
-  const [forecastSnapshot, setForecastSnapshot] = React.useState<any>(null);
+function rupiah(n: number) {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n || 0));
+}
 
-  React.useEffect(() => {
-    if (hasProfile) {
-      fetch('/api/crm/dashboard')
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.success) {
-            setCrmStats(data.stats);
-          }
-        })
-        .catch(err => console.error('Error loading CRM stats for OverviewTab:', err));
+export default function OverviewTab({ setActiveTab, hasProfile = true }: OverviewTabProps) {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [running, setRunning] = React.useState(false);
 
-      // Fetch Latest Forecasting snapshot
-      fetch('/api/forecast/latest')
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.success && data.snapshot) {
-            setForecastSnapshot(data.snapshot);
-          }
-        })
-        .catch(err => console.error('Error loading forecast stats for OverviewTab:', err));
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/founder-dashboard/summary');
+      const json = await res.json();
+      if (json.success) setData(json);
+    } finally {
+      setLoading(false);
     }
-  }, [hasProfile]);
-
-  // Format currency to IDR Rupiah
-  const formatRupiah = (num: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(num);
   };
 
-  if (!hasProfile) {
-    return (
-      <div className="p-10 sm:p-20 border border-dashed border-slate-850 rounded-3xl bg-[#121622]/30 text-center flex flex-col items-center justify-center space-y-6 animate-fadeIn">
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400">
-          <Building className="w-8 h-8 text-amber-400" />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold text-slate-100">Profil Bisnis Permanen Belum Ada</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-            Isi identitas bisnis Anda terlebih dahulu di Settings agar sistem dapat menyimpan konfigurasi mata uang, nama usaha, serta menautkan analisis secara rapi ke database PostgreSQL / Supabase.
-          </p>
-        </div>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className="px-5 py-2.5 rounded-xl bg-indigo-650 hover:bg-indigo-600 text-white font-bold text-xs transition flex items-center gap-1.5 shadow"
-        >
-          Lengkapi Profil Bisnis Sekarang
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    if (hasProfile) void load();
+  }, [hasProfile]);
 
-  if (isEmptyState) {
-    return (
-      <div className="p-10 sm:p-20 border border-dashed border-slate-850 rounded-3xl bg-[#121622]/30 text-center flex flex-col items-center justify-center space-y-6 animate-fadeIn">
-        <div className="p-4 rounded-xl bg-indigo-550/10 border border-indigo-500/20 text-indigo-400">
-          <Sparkles className="w-8 h-8 animate-pulse text-indigo-400" />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold text-slate-100">Belum ada analisis</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-            Mulai dari AI Analyzer. Unggah data atau berikan masukan teks untuk menjalankan evaluasi otonom robot asisten AI terhadap bisnis Anda.
-          </p>
-        </div>
-        <button
-          onClick={() => setActiveTab('ai_analyzer')}
-          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow"
-        >
-          Mulai Hari Ini
-          <ChevronRight className="w-4 h-4" />
-        </button>
+  const runNow = async () => {
+    setRunning(true);
+    try {
+      await PassiveIntelligenceClient.runAnalysis();
+      await load();
+    } finally {
+      setRunning(false);
+    }
+  };
 
-        {/* Fast Demo activator */}
-        <div className="pt-6 border-t border-slate-900 w-full max-w-xs text-center space-y-2">
-          <span className="text-[10px] text-slate-500 font-mono block">ATAU GUNAKAN DEMO SIMULASI</span>
-          <button
-            onClick={onReset}
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline transition"
-          >
-            Muat Demo Kopi Selaras Cilandak
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!hasProfile) return <div className="p-6 rounded-2xl border border-dashed border-slate-800 text-xs text-slate-400">Lengkapi profil bisnis dulu di Settings.</div>;
+  if (loading) return <DashboardSkeleton />;
+  if (!data) return <div className="p-6 rounded-2xl border border-slate-800 text-xs text-slate-400">Belum ada data hari ini.</div>;
 
-  // Compute stats
-  const totalSales = businessState.sales_data.reduce((sum, item) => sum + item.sales, 0);
-  const totalTransactions = businessState.sales_data.reduce((sum, item) => sum + item.transactions, 0);
-  const activeProducts = businessState.top_products.length;
-  const alertCount = businessState.alerts.length;
+  const health = data.businessHealthScore;
+  const statusColor = health.status === 'healthy' ? 'text-emerald-400' : health.status === 'warning' ? 'text-amber-400' : health.status === 'critical' ? 'text-rose-400' : 'text-slate-400';
 
   return (
-    <div className="space-y-8 text-left animate-fadeIn">
-      
-      {/* Save Analysis banner when there is unsaved AI results */}
-      {isUnsavedAnalysis && (
-        <div className="p-4.5 rounded-3xl bg-indigo-950/25 border border-indigo-500/30 flex flex-col sm:flex-row justify-between items-center gap-4 animate-fadeIn relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full filter blur-[30px] pointer-events-none" />
-          <div className="text-left space-y-0.5 z-10">
-            <h4 className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-              Sertifikasi Analisis AI Baru Terdeteksi
-            </h4>
-            <p className="text-xs text-slate-300">
-              Hasil audit dari robot asisten Gemini belum dipreservasi ke database log riwayat Anda.
-            </p>
-          </div>
-          <button
-            onClick={onSaveAnalysis}
-            disabled={isSavingAnalysis}
-            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs transition shrink-0 rounded-xl shadow-md flex items-center justify-center gap-1.5 z-10"
-          >
-            {isSavingAnalysis && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-            {isSavingAnalysis ? 'Menyimpan ke Log...' : 'Simpan Analisis'}
-          </button>
+    <div className="space-y-4">
+      <div className="p-5 rounded-2xl bg-[#121622] border border-slate-850">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Business Health Score</p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className={`text-3xl font-black ${statusColor}`}>{health.score ?? '--'}</p>
+          <span className={`text-[10px] font-mono uppercase ${statusColor}`}>{health.status}</span>
         </div>
-      )}
-
-      {/* Upper Profile Greeting Box */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-6 rounded-3xl bg-gradient-to-r from-indigo-950/20 to-slate-900/10 border border-slate-850">
-        <div>
-          <span className="text-xs font-mono text-indigo-400 font-bold uppercase tracking-widest block mb-1">BUSINESS REPORT CONSOLE</span>
-          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-100 flex items-center gap-2.5">
-            <Building className="w-6 h-6 text-indigo-400" />
-            Statistik {businessName}
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Selamat datang di hub kemudi utama BizPilot AI. Berikut adalah ringkasan hasil audit otonom sistem cerdas berdasarkan analitik log transaksi dan feedback terintegrasi.
-          </p>
-        </div>
-        
-        {/* Quick Summary Pill indicator */}
-        {isDemoActive ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
-            <AlertOctagon className="w-3.5 h-3.5 text-amber-450 animate-pulse" />
-            <span className="text-[10px] font-mono font-bold tracking-wider">DEMO DATA</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-450" />
-            <span className="text-[10px] font-mono font-bold tracking-wider">LIVE DATA (TERPRESERVASI)</span>
-          </div>
-        )}
+        <div className="mt-2 text-xs text-slate-400">{(health.factors || []).join(' • ') || 'Belum ada data'}</div>
       </div>
 
-      {/* Grid of 4 Core Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Total Omset card */}
-        <div className="bg-[#121622]/90 border border-slate-850 rounded-2xl p-5 hover:border-indigo-500/30 transition-all flex flex-col justify-between h-32 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full filter blur-[20px] pointer-events-none group-hover:bg-indigo-500/10 transition-all" />
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Total Pendapatan (7-Hari)</span>
-              <span className="text-lg font-black text-slate-100 mt-2 block tracking-tight">
-                {formatRupiah(totalSales)}
-              </span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-[11px] text-indigo-300 flex items-center gap-1 font-sans">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Rata-rata {formatRupiah(totalSales / 7)} / hari</span>
-          </div>
-        </div>
-
-        {/* Transaction Volume Card */}
-        <div className="bg-[#121622]/90 border border-slate-850 rounded-2xl p-5 hover:border-emerald-500/30 transition-all flex flex-col justify-between h-32 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full filter blur-[20px] pointer-events-none group-hover:bg-emerald-500/10 transition-all" />
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Total Transaksi (7-Hari)</span>
-              <span className="text-lg font-black text-slate-100 mt-2 block tracking-tight">
-                {totalTransactions} Order
-              </span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShoppingCart className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-[11px] text-emerald-300 flex items-center gap-1 font-sans">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Rata-rata {Math.round(totalTransactions / 7)} order / hari</span>
-          </div>
-        </div>
-
-        {/* Active Products Card */}
-        <div className="bg-[#121622]/90 border border-slate-850 rounded-2xl p-5 hover:border-amber-500/30 transition-all flex flex-col justify-between h-32 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full filter blur-[20px] pointer-events-none group-hover:bg-amber-500/10 transition-all" />
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Produk Terpantau</span>
-              <span className="text-lg font-black text-slate-100 mt-2 block tracking-tight">
-                {activeProducts} Item Aktif
-              </span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <PackageCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-[11px] text-amber-300 flex items-center gap-1 font-sans leading-none">
-            <span>{businessState.top_products.filter(p => p.stock <= 10).length} produk kritis butuh restock</span>
-          </div>
-        </div>
-
-        {/* Action Alerts Count Card */}
-        <div className="bg-[#121622]/90 border border-slate-850 rounded-2xl p-5 hover:border-rose-500/30 transition-all flex flex-col justify-between h-32 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full filter blur-[20px] pointer-events-none group-hover:bg-rose-500/10 transition-all" />
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Sinyal Peringatan AI</span>
-              <span className="text-lg font-black text-slate-100 mt-2 block tracking-tight">
-                {alertCount} Notifikasi
-              </span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-450 border border-rose-500/20">
-              <AlertOctagon className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-[11px] text-rose-300 flex items-center gap-1 font-sans leading-none">
-            <span>Butuh audit strategi segera</span>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850"><p className="text-[10px] text-slate-500">Pendapatan Hari Ini</p><p className="text-sm font-bold text-slate-100 mt-1">{rupiah(data.today.revenue)}</p></div>
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850"><p className="text-[10px] text-slate-500">Pengeluaran Hari Ini</p><p className="text-sm font-bold text-slate-100 mt-1">{rupiah(data.today.expenses)}</p></div>
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850"><p className="text-[10px] text-slate-500">Estimasi Profit</p><p className="text-sm font-bold text-slate-100 mt-1">{rupiah(data.today.profit)}</p></div>
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850"><p className="text-[10px] text-slate-500">Jumlah Transaksi</p><p className="text-sm font-bold text-slate-100 mt-1">{data.today.transactionCount}</p></div>
       </div>
 
-      {/* Forecasting & Risk Projections Summary Row (Phase 8 Intel-AI Widget) */}
-      {forecastSnapshot && (
-        <div className="space-y-4 pt-2 animate-fadeIn">
-          <div className="flex justify-between items-center text-left">
-            <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-400 animate-pulse" />
-              Proyeksi Intelegensi & Risiko (Phase 8 Intel-AI)
-            </h3>
-            <button
-              onClick={() => setActiveTab('forecasting_risk')}
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold hover:underline transition flex items-center gap-1 cursor-pointer"
-            >
-              Buka Dashboard Peramalan AI
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Projected Revenue Mini Card */}
-            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-indigo-500/20 transition-all">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Proyeksi Omzet Masa Depan ({forecastSnapshot.forecast_range})</span>
-                <span className="text-xl font-bold text-indigo-400 block font-mono">
-                  {formatRupiah(forecastSnapshot.projected_revenue)}
-                </span>
-                <span className="text-[10.5px] text-slate-400 block font-medium">
-                  Saran Taktis: <strong className="text-indigo-300">Hubungi leads closing hangat segera</strong>
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/15">
-                <DollarSign className="w-4 h-4" />
-              </div>
+      <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
+        <p className="text-[10px] font-mono uppercase text-slate-500">Passive Intelligence Alerts</p>
+        <div className="mt-2 space-y-2">
+          {(data.alerts || []).slice(0, 4).map((a: any) => (
+            <div key={a.id} className="text-xs text-slate-300 flex items-start gap-2">
+              {a.severity === 'critical' || a.severity === 'high' ? <AlertTriangle className="w-3.5 h-3.5 text-rose-400 mt-0.5" /> : <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 mt-0.5" />}
+              <span>{a.message}</span>
             </div>
-
-            {/* Business Risk Index Mini Card */}
-            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-rose-500/20 transition-all">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Level Indikasi Risiko Bisnis harian</span>
-                <span className={`text-xl font-bold block ${forecastSnapshot.risk_level === 'Critical' ? 'text-rose-400 animate-pulse' : forecastSnapshot.risk_level === 'High' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {forecastSnapshot.risk_level === 'Critical' ? 'Kritis 🚨' : forecastSnapshot.risk_level === 'High' ? 'Tinggi ⚠' : forecastSnapshot.risk_level === 'Medium' ? 'Sedang' : 'Rendah'}
-                </span>
-                <span className="text-[10.5px] text-slate-400 block line-clamp-1 font-medium">
-                  Rekomendasi Utama: <strong className="text-slate-300">"{forecastSnapshot.ai_recommendations.shortTerm[0] || 'Monitor Logistik'}"</strong>
-                </span>
-              </div>
-              <div className={`p-2.5 rounded-xl border ${forecastSnapshot.risk_level === 'Critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/15' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
-                <AlertOctagon className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CRM Business Pipeline Summary Card Section */}
-      {crmStats && (
-        <div className="space-y-4 pt-2">
-          <div className="flex justify-between items-center text-left">
-            <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-400" />
-              CRM & Sales Pipeline Overview
-            </h3>
-            <button
-              onClick={() => setActiveTab('crm')}
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold hover:underline transition flex items-center gap-1 cursor-pointer"
-            >
-              Buka CRM Lengkap
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Metric 1: Hot Leads count */}
-            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-rose-500/20 transition-all">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Hot Leads (Tinggi)</span>
-                <span className="text-xl font-bold text-rose-450 text-rose-400 block font-mono">
-                  {crmStats.hotLeads} Prospek
-                </span>
-                <span className="text-[10.5px] text-slate-500 block">Tingkat minat prioritas</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/15">
-                <Sparkles className="w-4 h-4 text-rose-400 animate-pulse" />
-              </div>
-            </div>
-
-            {/* Metric 2: Estimated Revenue */}
-            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-cyan-500/20 transition-all">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Estimasi Nilai Pipeline</span>
-                <span className="text-xl font-bold text-cyan-450 text-cyan-400 block font-mono">
-                  {formatRupiah(crmStats.totalEstimatedRevenue)}
-                </span>
-                <span className="text-[10.5px] text-slate-500 block">Potensi konversi closing</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-            </div>
-
-            {/* Metric 3: Pending Follow-up */}
-            <div className="p-4 bg-[#121622]/90 border border-slate-850 rounded-2xl text-left flex justify-between items-center group hover:border-amber-500/20 transition-all">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider font-semibold">Menggantung (Follow-up)</span>
-                <span className="text-xl font-bold text-amber-450 text-amber-400 block font-mono">
-                  {crmStats.pendingFollowup} Prospek
-                </span>
-                <span className="text-[10.5px] text-slate-500 block">Butuh tindak lanjut lisan</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/15">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Health Score Panel Widget */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          Health Diagnostics & AI Insights
-        </h3>
-        
-        <HealthScoreCard
-          score={businessState.health_score}
-          summary={businessState.health_summary}
-          strengths={businessState.strengths}
-          risks={businessState.risks}
-          trend={businessState.sales_trend}
-          onReset={onReset}
-        />
-      </div>
-
-      {/* Quick Action Bento Grid */}
-      <div className="space-y-4 pt-4">
-        <h3 className="text-sm font-mono text-slate-400 uppercase tracking-widest font-semibold">
-          Navigasi Pintar Operasional
-        </h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          
-          {/* Action 1: AI Analyzer */}
-          <div 
-            onClick={() => setActiveTab('ai_analyzer')}
-            className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
-          >
-            <div className="absolute bottom-[-15px] right-[-15px] w-24 h-24 bg-indigo-500/5 rounded-full filter blur-[30px] pointer-events-none group-hover:bg-indigo-500/15" />
-            <div className="flex justify-between items-center">
-              <div className="p-3 rounded-2xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
-            </div>
-            <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-indigo-300 transition-colors">Analyze Business</h4>
-              <p className="text-xs text-slate-450 mt-1">
-                Unggah invoice, ulasan, atau chat baru ke generator Gemini AI untuk memproses insight terkini.
-              </p>
-            </div>
-          </div>
-
-          {/* Action 2: AI Business Chat */}
-          <div 
-            onClick={() => setActiveTab('chat')}
-            className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
-          >
-            <div className="absolute bottom-[-15px] right-[-15px] w-24 h-24 bg-violet-500/5 rounded-full filter blur-[30px] pointer-events-none group-hover:bg-violet-500/15" />
-            <div className="flex justify-between items-center">
-              <div className="p-3 rounded-2xl bg-violet-600/10 text-violet-400 border border-violet-500/20">
-                <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-violet-400 transition-colors" />
-            </div>
-            <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-violet-300 transition-colors">Tanya Konsultan AI</h4>
-              <p className="text-xs text-slate-450 mt-1">
-                Diskusikan riwayat audit, estimasi stok inventori, atau saring strategi promo instan.
-              </p>
-            </div>
-          </div>
-
-          {/* Action 3: Sales */}
-          <div 
-            onClick={() => setActiveTab('sales')}
-            className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
-          >
-            <div className="absolute bottom-[-15px] right-[-15px] w-24 h-24 bg-emerald-500/5 rounded-full filter blur-[30px] pointer-events-none group-hover:bg-emerald-500/15" />
-            <div className="flex justify-between items-center">
-              <div className="p-3 rounded-2xl bg-emerald-600/10 text-emerald-400 border border-emerald-500/20">
-                <ChevronRight className="w-5 h-5" />
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-400 transition-colors" />
-            </div>
-            <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors">Financial Reports</h4>
-              <p className="text-xs text-slate-450 mt-1">
-                Tinjau visualisasi diagram omzet harian dan identifikasi pergeseran momentum pendapatan.
-              </p>
-            </div>
-          </div>
-
-          {/* Action 4: Action Plan */}
-          <div 
-            onClick={() => setActiveTab('action_plan')}
-            className="group cursor-pointer p-6 rounded-3xl bg-[#121622] border border-slate-850 hover:bg-[#151a2a] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/5 text-left flex flex-col justify-between min-h-[160px] relative overflow-hidden"
-          >
-            <div className="absolute bottom-[-15px] right-[-15px] w-24 h-24 bg-amber-500/5 rounded-full filter blur-[30px] pointer-events-none group-hover:bg-amber-500/15" />
-            <div className="flex justify-between items-center">
-              <div className="p-3 rounded-2xl bg-amber-600/10 text-amber-450 border border-amber-500/20">
-                <ChevronRight className="w-5 h-5" />
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-amber-400 transition-colors" />
-            </div>
-            <div className="mt-4">
-              <h4 className="font-bold text-sm text-slate-100 group-hover:text-amber-350 transition-colors">Daily Action Plan</h4>
-              <p className="text-xs text-slate-450 mt-1">
-                Buka daftar prioritas solusi operasional yang dihasilkan oleh robot asisten analisis AI.
-              </p>
-            </div>
-          </div>
-
+          ))}
+          {(data.alerts || []).length === 0 && <p className="text-xs text-slate-500">Belum ada alert aktif.</p>}
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-3">
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850 text-xs text-slate-300">
+          OCR Quality: {data.ocrQuality.totalScans === 0 ? 'Upload nota pertama Anda' : `Confidence ${(Number(data.ocrQuality.averageConfidence || 0) * 100).toFixed(0)}% • Low ${data.ocrQuality.lowConfidenceCount}`}
+        </div>
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850 text-xs text-slate-300">
+          WhatsApp: {data.whatsapp.linked ? `Terhubung (${data.whatsapp.linkedPhoneLast4 || '****'})` : 'Belum terhubung'} • Pending {data.whatsapp.pendingActions}
+        </div>
+        <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850 text-xs text-slate-300">
+          Warung Mode hari ini: {data.warungMode.todayTransactions} transaksi
+        </div>
+      </div>
+
+      <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
+        <p className="text-[10px] font-mono uppercase text-slate-500">Business Memory Highlights</p>
+        <div className="mt-2 space-y-1">
+          {(data.memoryHighlights || []).map((m: any) => <p key={m.id} className="text-xs text-slate-300">{m.title}</p>)}
+          {(data.memoryHighlights || []).length === 0 && <p className="text-xs text-slate-500">Belum ada memory bisnis.</p>}
+        </div>
+      </div>
+
+      <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
+        <p className="text-[10px] font-mono uppercase text-slate-500">Recommended Next Actions</p>
+        <div className="mt-2 space-y-1">
+          {(data.recommendedActions || []).map((r: any, i: number) => <p key={i} className="text-xs text-slate-300">{r.text}</p>)}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => setActiveTab('ocr_nota')} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center justify-center gap-1"><Receipt className="w-3.5 h-3.5" />Upload Nota</button>
+        <button onClick={() => setActiveTab('warung_mode')} className="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1"><Mic className="w-3.5 h-3.5" />Warung Mode</button>
+        <button onClick={runNow} disabled={running} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center justify-center gap-1"><Sparkles className="w-3.5 h-3.5" />{running ? 'Memproses...' : 'Analisis Sekarang'}</button>
+        <button onClick={() => setActiveTab('business_memory')} className="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1"><MessageSquare className="w-3.5 h-3.5" />Business Memory</button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { BusinessProfileRepository, BusinessProfile } from '../repositories/businessProfileRepository';
-import { isSupabaseConfigured, isSchemaMissing, setSchemaMissing } from '../db/supabaseClient';
+import { getDatabaseHealthSnapshot, verifyDatabaseHealth } from '../db/supabaseClient';
+import { BusinessMemberRepository } from '../repositories/businessMemberRepository';
+import { enforceRole } from '../middleware/roleGuard';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,7 +17,10 @@ router.get('/combined-schema', async (req, res) => {
       '002_business_chat_messages.sql',
       '003_crm_leads.sql',
       '004_notifications_and_automation.sql',
-      '005_forecasting_risk.sql'
+      '005_forecasting_risk.sql',
+      '006_auth_multi_tenant.sql',
+      '007_cashflow_expenses.sql',
+      '008_rls_multi_tenant_security.sql'
     ];
 
     let combinedSql = `-- BIZPILOT CONSOLIDATED SUPABASE SCHEMA DDL\n`;
@@ -52,17 +57,18 @@ router.get('/', async (req, res) => {
     const profile = activeBusinessId
       ? await BusinessProfileRepository.getById(activeBusinessId)
       : await BusinessProfileRepository.getActiveProfile();
-    const resolvedMode = isSupabaseConfigured && !isSchemaMissing ? 'Supabase PostgreSQL' : 'Local JSON';
+    const database = getDatabaseHealthSnapshot();
 
     res.json({
       success: true,
-      storageMode: resolvedMode,
-      isSupabaseConfigured,
-      isSchemaMissing,
+      storageMode: database.healthy ? 'Supabase PostgreSQL' : 'Unavailable',
+      isSupabaseConfigured: database.configured,
+      isSchemaMissing: database.schemaMissing,
+      database,
       data: profile
     });
   } catch (err: any) {
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: 'Failed to retrieve active business profile: ' + err.message
     });
@@ -72,25 +78,28 @@ router.get('/', async (req, res) => {
 // POST to reset/re-check schema missing status
 router.post('/recheck-schema', async (req, res) => {
   try {
-    // Reset schema missing on server and attempt query
-    setSchemaMissing(false);
+    const database = await verifyDatabaseHealth();
     const activeBusinessId = (req as any).businessId;
     const profile = activeBusinessId
       ? await BusinessProfileRepository.getById(activeBusinessId)
       : await BusinessProfileRepository.getActiveProfile();
-    const resolvedMode = isSupabaseConfigured && !isSchemaMissing ? 'Supabase PostgreSQL' : 'Local JSON';
 
     res.json({
       success: true,
-      storageMode: resolvedMode,
-      isSupabaseConfigured,
-      isSchemaMissing,
+      storageMode: database.healthy ? 'Supabase PostgreSQL' : 'Unavailable',
+      isSupabaseConfigured: database.configured,
+      isSchemaMissing: database.schemaMissing,
+      database,
       data: profile
     });
   } catch (err: any) {
-    res.status(500).json({
+    const database = getDatabaseHealthSnapshot();
+    res.status(err.status || 500).json({
       success: false,
-      isSchemaMissing: true,
+      storageMode: 'Unavailable',
+      isSupabaseConfigured: database.configured,
+      isSchemaMissing: database.schemaMissing,
+      database,
       error: 'Failed to complete schema recheck: ' + err.message
     });
   }
@@ -99,10 +108,14 @@ router.post('/recheck-schema', async (req, res) => {
 // GET all business profiles (useful for listing/switching profiles)
 router.get('/all', async (req, res) => {
   try {
-    const list = await BusinessProfileRepository.getAllProfiles();
+    const user = (req as any).user;
+    const memberships = user?.id
+      ? await BusinessMemberRepository.getMembershipsByUserId(user.id)
+      : [];
+    const list = await BusinessProfileRepository.getProfilesByIds(memberships.map((membership) => membership.business_id));
     res.json({ success: true, count: list.length, data: list });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: 'Failed to retrieve business profiles: ' + err.message });
+    res.status(err.status || 500).json({ success: false, error: 'Failed to retrieve business profiles: ' + err.message });
   }
 });
 
@@ -127,14 +140,18 @@ router.post('/', async (req, res) => {
     };
 
     const newProfile = await BusinessProfileRepository.createProfile(payload);
+    const user = (req as any).user;
+    if (user?.id) {
+      await BusinessMemberRepository.addMember(newProfile.id, user.id, 'owner');
+    }
     res.status(201).json({ success: true, message: 'Business Profile successfully created!', data: newProfile });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: 'Failed to provision brand-new business profile: ' + err.message });
+    res.status(err.status || 500).json({ success: false, error: 'Failed to provision brand-new business profile: ' + err.message });
   }
 });
 
 // PUT (update) an existing business profile
-router.put('/:id', async (req, res) => {
+router.put('/:id', enforceRole('edit'), async (req, res) => {
   try {
     const id = req.params.id;
     const activeBusinessId = (req as any).businessId;
@@ -160,12 +177,12 @@ router.put('/:id', async (req, res) => {
 
     res.json({ success: true, message: 'Business Profile updated successfully!', data: updated });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: 'Failed to perform operations updating business profile: ' + err.message });
+    res.status(err.status || 500).json({ success: false, error: 'Failed to perform operations updating business profile: ' + err.message });
   }
 });
 
 // DELETE a business profile
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', enforceRole('delete'), async (req, res) => {
   try {
     const id = req.params.id;
     const activeBusinessId = (req as any).businessId;
@@ -178,7 +195,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ success: true, message: 'Business Profile successfully deleted.' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: 'Failed to delete business profile: ' + err.message });
+    res.status(err.status || 500).json({ success: false, error: 'Failed to delete business profile: ' + err.message });
   }
 });
 

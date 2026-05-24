@@ -13,7 +13,10 @@ import {
   FileText,
   Users,
   Bell,
-  TrendingUp
+  TrendingUp,
+  Scan,
+  Wallet,
+  Mic
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,12 +40,16 @@ export default function Sidebar({
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: Compass, desc: 'Ringkasan performa' },
     { id: 'sales', label: 'Sales Analytics', icon: BarChart3, desc: 'Grafik & tren omzet' },
+    { id: 'profit_cashflow', label: 'Profit & Cashflow', icon: Wallet, desc: 'P&L & arus kas bisnis', highlight: false },
     { id: 'forecasting_risk', label: 'Forecasting & Risk AI', icon: TrendingUp, desc: 'Proyeksi & mitigasi risiko', highlight: true },
     { id: 'crm', label: 'CRM & Leads', icon: Users, desc: 'Kelola prospek sales', highlight: true },
     { id: 'notifications_automation', label: 'Notifications & Otomasi', icon: Bell, desc: 'Otomatisasi & WA follow-up', highlight: true },
     { id: 'inventory', label: 'Inventory / Stok', icon: Package, desc: 'Logistik & restock' },
     { id: 'customer', label: 'Customer Insights', icon: MessageSquare, desc: 'Sentiment ulasan' },
+    { id: 'ocr_nota', label: 'OCR Nota / Struk', icon: Scan, desc: 'Scan & ekstrak struk', highlight: false },
+    { id: 'warung_mode', label: 'Warung Mode', icon: Mic, desc: 'Input transaksi suara', highlight: true },
     { id: 'chat', label: 'AI Business Chat', icon: Sparkles, desc: 'Tanya konsultan Bisnis', highlight: true },
+    { id: 'business_memory', label: 'Business Memory', icon: Building2, desc: 'Riwayat memori bisnis', highlight: true },
     { id: 'action_plan', label: 'Action Plan', icon: CheckSquare, desc: 'Rencana aksi harian' },
     { id: 'ai_analyzer', label: 'AI Analyzer', icon: Sparkles, desc: 'Unggah & komputerisasi', highlight: true },
     { id: 'history', label: 'Analysis History', icon: History, desc: 'Riwayat data audit' },
@@ -151,7 +158,7 @@ export default function Sidebar({
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <div>
               <span className="text-[10px] text-emerald-400 font-mono font-bold block">SISTEM ANALISIS AKTIF</span>
-              <span className="text-[9px] text-slate-500 font-mono block">Node 20.x &bull; Gemini 3.5</span>
+              <span className="text-[9px] text-slate-500 font-mono block">Node 20.x · Gemini 2.0</span>
             </div>
           </div>
         </div>

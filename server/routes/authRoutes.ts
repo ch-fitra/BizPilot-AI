@@ -66,7 +66,7 @@ router.post('/register', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Registration error:', err);
-    return res.status(500).json({ success: false, error: 'Gagal melakukan pendaftaran: ' + err.message });
+    return res.status(err.status || 500).json({ success: false, error: 'Gagal melakukan pendaftaran: ' + err.message });
   }
 });
 
@@ -93,7 +93,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const memberships = await BusinessMemberRepository.getMembershipsByUserId(user.id);
     const workspaces: any[] = [];
 
-    const allProfiles = await BusinessProfileRepository.getAllProfiles();
+    const allProfiles = await BusinessProfileRepository.getProfilesByIds(memberships.map((membership) => membership.business_id));
     for (const membership of memberships) {
       const match = allProfiles.find(p => p.id === membership.business_id);
       if (match) {
@@ -126,7 +126,7 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Login error:', err);
-    return res.status(500).json({ success: false, error: 'Gagal melakukan login: ' + err.message });
+    return res.status(err.status || 500).json({ success: false, error: 'Gagal melakukan login: ' + err.message });
   }
 });
 
@@ -143,7 +143,7 @@ router.get('/me', simpleAuthMiddleware, async (req: Request, res: Response) => {
     const memberships = await BusinessMemberRepository.getMembershipsByUserId(user.id);
     const workspaces: any[] = [];
 
-    const allProfiles = await BusinessProfileRepository.getAllProfiles();
+    const allProfiles = await BusinessProfileRepository.getProfilesByIds(memberships.map((membership) => membership.business_id));
     for (const membership of memberships) {
       const match = allProfiles.find(p => p.id === membership.business_id);
       if (match) {
@@ -174,7 +174,7 @@ router.get('/me', simpleAuthMiddleware, async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Session retrieval failure:', err);
-    return res.status(500).json({ success: false, error: 'Identifikasi sesi gagal.' });
+    return res.status(err.status || 500).json({ success: false, error: err.message || 'Identifikasi sesi gagal.' });
   }
 });
 
@@ -213,7 +213,7 @@ router.post('/workspace', simpleAuthMiddleware, async (req: Request, res: Respon
     });
   } catch (err: any) {
     console.error('Workspace creation failure:', err);
-    return res.status(500).json({ success: false, error: 'Gagal membuat workspace bisnis baru.' });
+    return res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal membuat workspace bisnis baru.' });
   }
 });
 
@@ -226,7 +226,13 @@ router.post('/profile', simpleAuthMiddleware, async (req: Request, res: Response
     const updates: any = {};
     if (fullName) updates.full_name = fullName;
     if (avatarUrl) updates.avatar_url = avatarUrl;
-    if (defaultBusinessId) updates.default_business_id = defaultBusinessId;
+    if (defaultBusinessId) {
+      const membership = await BusinessMemberRepository.getMembership(defaultBusinessId, requester.id);
+      if (!membership) {
+        return res.status(403).json({ success: false, error: 'Akses ditolak. Anda bukan anggota workspace tersebut.' });
+      }
+      updates.default_business_id = defaultBusinessId;
+    }
 
     const updated = await UserProfileRepository.update(requester.id, updates);
 
@@ -242,7 +248,7 @@ router.post('/profile', simpleAuthMiddleware, async (req: Request, res: Response
     });
   } catch (err: any) {
     console.error('Profile update failure:', err);
-    return res.status(500).json({ success: false, error: 'Gagal memperbarui profil pengguna.' });
+    return res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal memperbarui profil pengguna.' });
   }
 });
 

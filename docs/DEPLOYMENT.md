@@ -1,15 +1,15 @@
-# 🚀 Deployment Guide — BizPilot AI
+﻿# ðŸš€ Deployment Guide â€” BizPilot AI
 
 > Panduan lengkap deployment dari lokal development hingga Google Cloud Run production.
 
 ---
 
-## 📋 Prerequisites
+## ðŸ“‹ Prerequisites
 
 - Node.js 20+ dan npm
 - Docker (untuk container deployment)
 - Google Cloud SDK (untuk Cloud Run)
-- Supabase account (opsional — Local JSON fallback tersedia)
+- Supabase account (wajib untuk data bisnis production)
 
 ---
 
@@ -25,7 +25,7 @@ npm install
 
 # Setup environment
 cp .env.example .env
-# Edit .env — isi minimal GEMINI_API_KEY dan JWT_SECRET
+# Edit .env â€” isi minimal GEMINI_API_KEY dan JWT_SECRET
 
 # Start development server
 npm run dev
@@ -132,19 +132,22 @@ curl https://YOUR_CLOUD_RUN_URL/api/system/security-status
 
 | Variable | Keterangan | Wajib |
 |----------|-----------|-------|
-| `GEMINI_API_KEY` | Google Gemini API key | Opsional — AI disabled jika kosong |
+| `GEMINI_API_KEY` | Google Gemini API key | Opsional â€” AI disabled jika kosong |
 | `JWT_SECRET` | JWT auth secret (min 32 char) | Sangat disarankan untuk production |
 | `APP_URL` | URL publik aplikasi | Opsional |
-| `SUPABASE_URL` | URL project Supabase | Opsional — Local JSON jika kosong |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | Opsional |
+| `SUPABASE_URL` | URL project Supabase | Wajib untuk data bisnis |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | Wajib untuk data bisnis |
 | `VITE_SUPABASE_URL` | Supabase URL untuk frontend | Opsional |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key untuk frontend | Opsional |
-| `WHATSAPP_API_URL` | Endpoint WhatsApp provider | Opsional — Simulation jika kosong |
+| `WHATSAPP_API_URL` | Endpoint WhatsApp provider | Opsional â€” Simulation jika kosong |
 | `WHATSAPP_API_TOKEN` | Token WhatsApp provider | Opsional |
 | `WHATSAPP_PHONE_NUMBER` | Nomor pengirim WhatsApp | Opsional |
+| `CRON_SECRET` | Secret header untuk internal scheduler route | Wajib untuk scheduled passive intelligence |
+| `PASSIVE_JOB_BATCH_SIZE` | Jumlah bisnis per batch job passive intelligence | Opsional (default 25) |
+| `PASSIVE_JOB_MAX_RUNTIME_MS` | Batas waktu maksimal job passive intelligence | Opsional (default 240000) |
 | `PORT` | Port server (default: 8080) | Opsional |
 
-> ⚠️ **Jangan pernah** commit file `.env` ke Git. Cloud Run meng-inject env vars melalui konfigurasi service.
+> âš ï¸ **Jangan pernah** commit file `.env` ke Git. Cloud Run meng-inject env vars melalui konfigurasi service.
 
 ---
 
@@ -179,7 +182,7 @@ Pastikan tabel-tabel berikut ada setelah migrasi:
 
 ### Tanpa Supabase
 
-Jika tidak menggunakan Supabase, aplikasi otomatis fallback ke **Local JSON Storage**. Data disimpan di folder `server/data/` sebagai file JSON per tenant. Mode ini cocok untuk development dan demo, tetapi tidak direkomendasikan untuk production multi-user.
+Jika Supabase tidak tersedia, backend tidak menyimpan data bisnis ke filesystem. Endpoint data akan gagal aman dengan 503 dan frontend menyimpan perubahan sementara di IndexedDB untuk dicoba ulang.
 
 ---
 
@@ -187,7 +190,7 @@ Jika tidak menggunakan Supabase, aplikasi otomatis fallback ke **Local JSON Stor
 
 | Endpoint | Method | Keterangan |
 |----------|--------|-----------|
-| `/api/health` | GET | Server health check — harus return `{"status":"ok"}` |
+| `/api/health` | GET | Server health check â€” harus return `{"status":"ok"}` |
 | `/api/system/security-status` | GET | Mode AI/WhatsApp/Storage saat ini |
 | `/api/system/pwa-status` | GET | PWA & offline support status |
 
@@ -195,7 +198,60 @@ Gunakan `/api/health` sebagai Cloud Run health check endpoint.
 
 ---
 
-## 8. Troubleshooting
+## 8. Passive Intelligence Scheduler (Cloud Run + Cloud Scheduler)
+
+Phase 4 passive intelligence dapat dijalankan otomatis via secure internal endpoint:
+
+- Endpoint: `POST /api/internal/jobs/passive-intelligence`
+- Header wajib: `x-cron-secret: <CRON_SECRET>`
+- Endpoint ini **tidak** dipanggil frontend.
+
+### Setup Environment
+
+Pastikan env vars berikut sudah diset di Cloud Run service:
+
+```bash
+CRON_SECRET=<secret-acak-panjang>
+PASSIVE_JOB_BATCH_SIZE=25
+PASSIVE_JOB_MAX_RUNTIME_MS=240000
+```
+
+### Contoh Cloud Scheduler (HTTP)
+
+1. Daily pagi (06:00 Asia/Jakarta):
+
+```bash
+gcloud scheduler jobs create http bizpilot-passive-intel-morning \
+  --location=asia-southeast1 \
+  --schedule="0 6 * * *" \
+  --time-zone="Asia/Jakarta" \
+  --http-method=POST \
+  --uri="https://YOUR_CLOUD_RUN_URL/api/internal/jobs/passive-intelligence" \
+  --headers="x-cron-secret=<CRON_SECRET>"
+```
+
+2. Opsional nightly (23:00 Asia/Jakarta):
+
+```bash
+gcloud scheduler jobs create http bizpilot-passive-intel-night \
+  --location=asia-southeast1 \
+  --schedule="0 23 * * *" \
+  --time-zone="Asia/Jakarta" \
+  --http-method=POST \
+  --uri="https://YOUR_CLOUD_RUN_URL/api/internal/jobs/passive-intelligence" \
+  --headers="x-cron-secret=<CRON_SECRET>"
+```
+
+### Contoh Request Manual
+
+```bash
+curl -X POST "https://YOUR_CLOUD_RUN_URL/api/internal/jobs/passive-intelligence" \
+  -H "x-cron-secret: <CRON_SECRET>"
+```
+
+---
+
+## 9. Troubleshooting
 
 | Masalah | Kemungkinan Penyebab | Solusi |
 |---------|---------------------|--------|
@@ -210,7 +266,7 @@ Gunakan `/api/health` sebagai Cloud Run health check endpoint.
 
 ---
 
-## 9. Pre-Deployment Checklist
+## 10. Pre-Deployment Checklist
 
 ```bash
 # Wajib dijalankan sebelum deploy
@@ -226,3 +282,4 @@ Semua command harus sukses tanpa error sebelum deploy ke production.
 ---
 
 *Untuk panduan demo, lihat [DEMO_GUIDE.md](DEMO_GUIDE.md). Untuk security, lihat [SECURITY.md](SECURITY.md).*
+

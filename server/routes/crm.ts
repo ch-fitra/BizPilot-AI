@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { CRMLeadRepository, CRMLead } from '../repositories/crmLeadRepository';
 import { enforceRole } from '../middleware/roleGuard';
 
@@ -55,7 +55,7 @@ function sanitizeLeadBody(body: any): Omit<CRMLead, 'id' | 'lead_score' | 'creat
 // 1. GET /api/crm/dashboard (Retrieves summarized statistics for high efficiency overview)
 router.get('/dashboard', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     const leads = await CRMLeadRepository.getAll(businessId);
     
     const now = new Date();
@@ -108,36 +108,33 @@ router.get('/dashboard', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Error compiled CRM analytics overview route:', err.message);
-    res.status(500).json({ success: false, error: 'Gagal mengompilasi statistik CRM.' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal mengompilasi statistik CRM.' });
   }
 });
 
 // 2. GET /api/crm/leads
 router.get('/leads', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     const data = await CRMLeadRepository.getAll(businessId);
     res.json({ success: true, data });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Gagal memuat list prospek.' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal memuat list prospek.' });
   }
 });
 
 // 3. GET /api/crm/leads/:id
 router.get('/leads/:id', async (req, res) => {
   try {
-    const lead = await CRMLeadRepository.getById(req.params.id);
+    const activeBusinessId = (req as any).businessId || null;
+    const lead = await CRMLeadRepository.getById(req.params.id, activeBusinessId);
     if (!lead) {
       return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan.' });
-    }
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && lead.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Lead belongs to another workspace.' });
     }
     const activities = await CRMLeadRepository.getActivitiesByLeadId(req.params.id);
     res.json({ success: true, data: lead, activities });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
@@ -145,6 +142,7 @@ router.get('/leads/:id', async (req, res) => {
 router.post('/leads', enforceRole('edit'), async (req, res) => {
   try {
     const sanitized = sanitizeLeadBody(req.body);
+    sanitized.business_id = (req as any).businessId || sanitized.business_id || null;
     const result = await CRMLeadRepository.createLead(sanitized);
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
@@ -158,13 +156,11 @@ router.post('/leads', enforceRole('edit'), async (req, res) => {
 // 5. PUT /api/crm/leads/:id
 router.put('/leads/:id', enforceRole('edit'), async (req, res) => {
   try {
-    const existing = await CRMLeadRepository.getById(req.params.id);
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && existing && existing.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Lead belongs to another workspace.' });
-    }
+    const activeBusinessId = (req as any).businessId || null;
+    const existing = await CRMLeadRepository.getById(req.params.id, activeBusinessId);
     const sanitized = sanitizeLeadBody(req.body);
-    const result = await CRMLeadRepository.updateLead(req.params.id, sanitized);
+    sanitized.business_id = activeBusinessId || sanitized.business_id || null;
+    const result = await CRMLeadRepository.updateLead(req.params.id, sanitized, activeBusinessId);
     if (!result) {
       return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan untuk diedit.' });
     }
@@ -180,43 +176,43 @@ router.put('/leads/:id', enforceRole('edit'), async (req, res) => {
 // 6. DELETE /api/crm/leads/:id
 router.delete('/leads/:id', enforceRole('delete'), async (req, res) => {
   try {
-    const existing = await CRMLeadRepository.getById(req.params.id);
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && existing && existing.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Lead belongs to another workspace.' });
+    const activeBusinessId = (req as any).businessId || null;
+    const existing = await CRMLeadRepository.getById(req.params.id, activeBusinessId);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan atau gagal dihapus.' });
     }
-    const success = await CRMLeadRepository.deleteLead(req.params.id);
+    const success = await CRMLeadRepository.deleteLead(req.params.id, activeBusinessId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan atau gagal dihapus.' });
     }
     res.json({ success: true, message: 'Prospek Lead berhasil dihapus secara permanen.' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // 7. GET /api/crm/leads/:id/activities
 router.get('/leads/:id/activities', async (req, res) => {
   try {
-    const lead = await CRMLeadRepository.getById(req.params.id);
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && lead && lead.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Lead belongs to another workspace.' });
+    const activeBusinessId = (req as any).businessId || null;
+    const lead = await CRMLeadRepository.getById(req.params.id, activeBusinessId);
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan.' });
     }
     const activities = await CRMLeadRepository.getActivitiesByLeadId(req.params.id);
     res.json({ success: true, data: activities });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // 8. POST /api/crm/leads/:id/activities
 router.post('/leads/:id/activities', enforceRole('edit'), async (req, res) => {
   try {
-    const lead = await CRMLeadRepository.getById(req.params.id);
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && lead && lead.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Lead belongs to another workspace.' });
+    const activeBusinessId = (req as any).businessId || null;
+    const lead = await CRMLeadRepository.getById(req.params.id, activeBusinessId);
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Prospek Lead tidak ditemukan.' });
     }
     const { activity_type, notes } = req.body;
     if (!notes || !notes.trim()) {
@@ -229,8 +225,9 @@ router.post('/leads/:id/activities', enforceRole('edit'), async (req, res) => {
     );
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 export default router;
+

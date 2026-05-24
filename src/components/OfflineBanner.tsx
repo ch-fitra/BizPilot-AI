@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi, RefreshCw, AlertCircle } from 'lucide-react';
+import { WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { OfflineQueueService } from '../services/offlineQueueService';
@@ -12,20 +12,20 @@ export const OfflineBanner: React.FC = () => {
   const [showStatusBubble, setShowStatusBubble] = useState<boolean>(true);
 
   // Sync count update handler
-  const updatePendingCount = () => {
-    const queue = OfflineQueueService.getQueue();
+  const updatePendingCount = async () => {
+    const queue = await OfflineQueueService.getQueue();
     setPendingCount(queue.length);
   };
 
   useEffect(() => {
-    updatePendingCount();
+    void updatePendingCount();
 
     // Event listeners
     window.addEventListener('bizpilot-offline-queue-changed', updatePendingCount);
     
     const handleSyncState = (e: any) => {
       setIsSyncing(!!e.detail?.isSyncing);
-      updatePendingCount();
+      void updatePendingCount();
     };
     window.addEventListener('bizpilot-sync-state-changed', handleSyncState);
 
@@ -56,7 +56,7 @@ export const OfflineBanner: React.FC = () => {
             <div className="flex-1 text-left">
               <h4 id="offline-lbl-title" className="text-xs font-bold uppercase tracking-wider text-amber-400">Mode Offline Aktif</h4>
               <p id="offline-lbl-desc" className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                Koneksi terputus. Perubahan local otomatis disimpan dan dikirim saat internet kembali. Fitur AI membutuhkan internet.
+                Server sedang sibuk, data Anda aman dan akan dicoba kembali.
               </p>
             </div>
           </motion.div>

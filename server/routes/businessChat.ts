@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { validateAndSanitizeInput } from '../utils/promptGuards';
 import { BusinessChatService } from '../services/businessChatService';
 import { ChatHistoryRepository } from '../repositories/chatHistoryRepository';
@@ -11,11 +11,12 @@ router.post('/business', async (req, res) => {
     // Audit input bounds and sanitize malicious entries
     const validated = validateAndSanitizeInput(req.body);
     const includeHistory = req.body.include_history !== false;
+    const activeBusinessId = (req as any).businessId || validated.business_id;
 
     // Call service to coordinate profile context query and ask Gemini
     const result = await BusinessChatService.processChat({
       message: validated.message,
-      business_id: validated.business_id,
+      business_id: activeBusinessId,
       analysis_id: validated.analysis_id,
       include_history: includeHistory
     });
@@ -36,7 +37,7 @@ router.post('/business', async (req, res) => {
 // 2. GET /api/chat/history
 router.get('/history', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     const history = await ChatHistoryRepository.getAll(businessId);
 
     res.json({
@@ -45,7 +46,7 @@ router.get('/history', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Error retrieving chat histories:', err.message || err);
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: err.message || 'Gagal mengambil riwayat chat.'
     });
@@ -55,7 +56,7 @@ router.get('/history', async (req, res) => {
 // 3. DELETE /api/chat/history
 router.delete('/history', async (req, res) => {
   try {
-    const businessId = (req.query.business_id as string) || null;
+    const businessId = (req as any).businessId || null;
     await ChatHistoryRepository.clearHistory(businessId);
 
     res.json({
@@ -64,7 +65,7 @@ router.delete('/history', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Error clearing chat histories:', err.message || err);
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: err.message || 'Gagal menghapus riwayat chat.'
     });
@@ -72,3 +73,4 @@ router.delete('/history', async (req, res) => {
 });
 
 export default router;
+

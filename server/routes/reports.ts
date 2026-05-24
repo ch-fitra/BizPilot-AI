@@ -7,14 +7,15 @@ const router = Router();
 // GET all reports
 router.get('/', async (req, res) => {
   try {
-    const list = await AnalysisHistoryRepository.getAll();
+    const activeBusinessId = (req as any).businessId;
+    const list = await AnalysisHistoryRepository.getAll(activeBusinessId);
     res.json({
       success: true,
       count: list.length,
       data: list
     });
   } catch (err: any) {
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: 'Failed to retrieve reports: ' + err.message
     });
@@ -24,13 +25,14 @@ router.get('/', async (req, res) => {
 // GET single report by id
 router.get('/:analysisId', async (req, res) => {
   try {
-    const record = await AnalysisHistoryRepository.getById(req.params.analysisId);
+    const activeBusinessId = (req as any).businessId;
+    const record = await AnalysisHistoryRepository.getById(req.params.analysisId, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Report not found' });
     }
     res.json({ success: true, data: record });
   } catch (err: any) {
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: 'Failed to retrieve report detail: ' + err.message
     });
@@ -40,7 +42,8 @@ router.get('/:analysisId', async (req, res) => {
 // GET CSV representation of a report
 router.get('/:analysisId/csv', async (req, res) => {
   try {
-    const record = await AnalysisHistoryRepository.getById(req.params.analysisId);
+    const activeBusinessId = (req as any).businessId;
+    const record = await AnalysisHistoryRepository.getById(req.params.analysisId, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Report not found for CSV generation' });
     }
@@ -146,7 +149,7 @@ router.get('/:analysisId/csv', async (req, res) => {
     csvContent += `\n`;
     csvContent += `"=== FORECASTING & RISK AI PREDICTIONS ==="\n`;
     try {
-      const forecast = await ForecastRepository.getLatest();
+      const forecast = await ForecastRepository.getLatest(activeBusinessId);
       if (forecast) {
         csvContent += `"Rentang Prediksi","Proyeksi Omzet","Proyeksi Transaksi","Level Risiko Bisnis","Margin Keyakinan (Confidence)"\n`;
         csvContent += `"${forecast.forecast_range}","${forecast.projected_revenue}","${forecast.projected_transactions}","${forecast.risk_level}","${forecast.confidence_level}"\n\n`;
@@ -173,7 +176,7 @@ router.get('/:analysisId/csv', async (req, res) => {
     res.status(200).send(csvContent);
 
   } catch (err: any) {
-    res.status(500).json({
+    res.status(err.status || 500).json({
       success: false,
       error: 'Failed to generate report CSV payload: ' + err.message
     });
@@ -181,3 +184,4 @@ router.get('/:analysisId/csv', async (req, res) => {
 });
 
 export default router;
+

@@ -18,7 +18,12 @@ export function validateEnvironment(): EnvValidationResult {
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
     'WHATSAPP_API_URL',
-    'WHATSAPP_API_TOKEN'
+    'WHATSAPP_API_TOKEN',
+    'CRON_SECRET',
+    'PASSIVE_JOB_BATCH_SIZE',
+    'PASSIVE_JOB_MAX_RUNTIME_MS',
+    'GEMINI_EMBEDDING_MODEL',
+    'GEMINI_EMBEDDING_DIM'
   ];
 
   const isMissingOrPlaceholder = (name: string, val?: string) => {
@@ -50,9 +55,17 @@ export function validateEnvironment(): EnvValidationResult {
   optionalVars.forEach((name) => {
     const val = process.env[name];
     if (isMissingOrPlaceholder(name, val)) {
-      warnings.push(`Optional variable missing/unset: ${name} (App will fallback cleanly to local modes)`);
+      warnings.push(`Optional variable missing/unset: ${name} (server-side local JSON persistence is disabled; affected features fail safely)`);
     }
   });
+
+  const embeddingDimRaw = process.env.GEMINI_EMBEDDING_DIM;
+  if (embeddingDimRaw && embeddingDimRaw.trim() !== '') {
+    const embeddingDim = Number(embeddingDimRaw);
+    if (!Number.isFinite(embeddingDim) || embeddingDim <= 0 || !Number.isInteger(embeddingDim)) {
+      issues.push('Optional variable invalid: GEMINI_EMBEDDING_DIM must be a positive integer.');
+    }
+  }
 
   return {
     valid: !criticalMissing,

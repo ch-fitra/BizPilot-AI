@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { enforceRole } from '../middleware/roleGuard';
 import { BusinessMemberRepository } from '../repositories/businessMemberRepository';
@@ -25,7 +25,7 @@ router.get('/', enforceRole('view'), async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Error listing team members:', err);
-    return res.status(500).json({ success: false, error: 'Gagal memuat tim anggota: ' + err.message });
+    return res.status(err.status || 500).json({ success: false, error: 'Gagal memuat tim anggota: ' + err.message });
   }
 });
 
@@ -82,7 +82,7 @@ router.post('/invite', enforceRole('manageUsers'), async (req: Request, res: Res
     });
   } catch (err: any) {
     console.error('Core Member invitation failure:', err);
-    return res.status(500).json({ success: false, error: 'Penyebab kegagalan mengundang anggota baru: ' + err.message });
+    return res.status(err.status || 500).json({ success: false, error: 'Penyebab kegagalan mengundang anggota baru: ' + err.message });
   }
 });
 
@@ -128,7 +128,7 @@ router.post('/role', enforceRole('manageUsers'), async (req: Request, res: Respo
     });
   } catch (err: any) {
     console.error('Error updating member role:', err);
-    return res.status(500).json({ success: false, error: 'Gagal mengubah peran anggota tim.' });
+    return res.status(err.status || 500).json({ success: false, error: 'Gagal mengubah peran anggota tim.' });
   }
 });
 
@@ -161,8 +161,9 @@ router.delete('/member/:userId', enforceRole('manageUsers'), async (req: Request
     });
   } catch (err: any) {
     console.error('Eviction error:', err);
-    return res.status(500).json({ success: false, error: 'Gagal mengeluarkan anggota dari tim.' });
+    return res.status(err.status || 500).json({ success: false, error: 'Gagal mengeluarkan anggota dari tim.' });
   }
 });
 
 export default router;
+

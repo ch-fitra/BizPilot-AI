@@ -7,11 +7,10 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const activeBusinessId = (req as any).businessId;
-    const list = (await AnalysisHistoryRepository.getAll())
-      .filter((record) => !activeBusinessId || record.business_id === activeBusinessId);
+    const list = await AnalysisHistoryRepository.getAll(activeBusinessId);
     res.json({ success: true, count: list.length, data: list });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to retrieve analysis history list: ' + error.message });
+    res.status(error.status || 500).json({ success: false, error: 'Failed to retrieve analysis history list: ' + error.message });
   }
 });
 
@@ -19,28 +18,24 @@ router.get('/', async (req, res) => {
 router.get('/latest', async (req, res) => {
   try {
     const activeBusinessId = (req as any).businessId;
-    const latest = (await AnalysisHistoryRepository.getAll())
-      .find((record) => !activeBusinessId || record.business_id === activeBusinessId) || null;
+    const latest = await AnalysisHistoryRepository.getLatest(activeBusinessId);
     res.json({ success: true, data: latest });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch latest analysis: ' + error.message });
+    res.status(error.status || 500).json({ success: false, error: 'Failed to fetch latest analysis: ' + error.message });
   }
 });
 
 // GET analysis record by ID
 router.get('/:id', async (req, res) => {
   try {
-    const record = await AnalysisHistoryRepository.getById(req.params.id);
+    const activeBusinessId = (req as any).businessId;
+    const record = await AnalysisHistoryRepository.getById(req.params.id, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Analysis record not found' });
     }
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && record.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Analysis record belongs to another workspace.' });
-    }
     res.json({ success: true, data: record });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to retrieve analysis record details: ' + error.message });
+    res.status(error.status || 500).json({ success: false, error: 'Failed to retrieve analysis record details: ' + error.message });
   }
 });
 
@@ -48,7 +43,6 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      business_id,
       business_name,
       business_type,
       input_source,
@@ -74,7 +68,7 @@ router.post('/', async (req, res) => {
     }
 
     const created = await AnalysisHistoryRepository.create({
-      business_id: business_id || null,
+      business_id: (req as any).businessId || null,
       business_name: business_name || 'My Business',
       business_type: business_type || 'MSME',
       input_source: input_source || 'text',
@@ -93,7 +87,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, data: created });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to preserve new analysis report in repository: ' + error.message });
+    res.status(error.status || 500).json({ success: false, error: 'Failed to preserve new analysis report in repository: ' + error.message });
   }
 });
 
@@ -101,17 +95,17 @@ router.post('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const activeBusinessId = (req as any).businessId;
-    const record = await AnalysisHistoryRepository.getById(req.params.id);
-    if (activeBusinessId && record && record.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Analysis record belongs to another workspace.' });
+    const record = await AnalysisHistoryRepository.getById(req.params.id, activeBusinessId);
+    if (!record) {
+      return res.status(404).json({ success: false, error: 'Analysis record not found for execution' });
     }
-    const deleted = await AnalysisHistoryRepository.delete(req.params.id);
+    const deleted = await AnalysisHistoryRepository.delete(req.params.id, activeBusinessId);
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Analysis record not found for execution' });
     }
     res.json({ success: true, message: 'Analysis history successfully purged from storage.' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to delete analysis history item: ' + error.message });
+    res.status(error.status || 500).json({ success: false, error: 'Failed to delete analysis history item: ' + error.message });
   }
 });
 

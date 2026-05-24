@@ -3,7 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
-import { initializeDatabasePrecheck } from './server/db/supabaseClient';
+import rateLimit from 'express-rate-limit';
+import { getDatabaseHealthSnapshot, verifyDatabaseHealth } from './server/db/supabaseClient';
 import { authMiddleware } from './server/middleware/authMiddleware';
 import authRouter from './server/routes/authRoutes';
 import teamRouter from './server/routes/teamRoutes';
@@ -15,6 +16,14 @@ import crmRouter from './server/routes/crm';
 import notificationsRouter from './server/routes/notifications';
 import forecastRouter from './server/routes/forecast';
 import demoRouter from './server/routes/demo';
+import ocrRouter from './server/routes/ocr';
+import cashflowRouter from './server/routes/cashflow';
+import passiveIntelligenceRouter from './server/routes/passiveIntelligence';
+import internalJobsRouter from './server/routes/internalJobs';
+import businessMemoryRouter from './server/routes/businessMemory';
+import warungModeRouter from './server/routes/warungMode';
+import whatsappWebhookRouter from './server/routes/whatsappWebhook';
+import founderDashboardRouter from './server/routes/founderDashboard';
 import { requestLogger } from './server/middleware/requestLogger';
 import { errorHandler, standardizeApiErrorResponse } from './server/middleware/errorHandler';
 import { validateEnvironment } from './server/config/envValidation';
@@ -35,6 +44,25 @@ console.log('-----------------------------------------');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+// ─── Rate Limiters ───────────────────────────────────────────────────────────
+// AI endpoints: 10 requests per minute per IP to prevent API key exhaustion
+const aiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Terlalu banyak permintaan AI. Harap tunggu 60 detik sebelum mencoba lagi.' },
+});
+
+// Auth endpoints: 5 requests per minute per IP to prevent brute-force
+const authRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Terlalu banyak percobaan login. Harap tunggu 60 detik.' },
+});
 
 // Mount observational logging middleware
 app.use(requestLogger);
@@ -69,7 +97,15 @@ function getAiClient(): GoogleGenAI {
 
 // 1. Health verification api
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', serverTime: new Date().toISOString() });
+  const database = getDatabaseHealthSnapshot();
+  res.status(database.healthy ? 200 : 503).json({
+    status: database.healthy ? 'ok' : 'degraded',
+    serverTime: new Date().toISOString(),
+    database,
+    message: database.healthy
+      ? 'Server siap.'
+      : 'Server sedang sibuk, data Anda aman dan akan dicoba kembali.',
+  });
 });
 
 // PWA & Service Worker Awareness Endpoint
@@ -87,7 +123,7 @@ app.get('/api/system/security-status', (req, res) => {
   const currentCheck = validateEnvironment();
   const hasGemini = !!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('MY_');
   const hasWhatsApp = !!process.env.WHATSAPP_API_URL && !!process.env.WHATSAPP_API_TOKEN;
-  const hasSupabase = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const database = getDatabaseHealthSnapshot();
 
   res.json({
     success: true,
@@ -96,15 +132,16 @@ app.get('/api/system/security-status', (req, res) => {
       modes: {
         ai: hasGemini ? 'enabled' : 'disabled',
         whatsapp: hasWhatsApp ? 'live' : 'simulation',
-        storage: hasSupabase ? 'supabase-postgres' : 'local-json'
-      }
+        storage: database.healthy ? 'supabase-postgres' : 'unavailable'
+      },
+      database
     }
   });
 });
 
 
-// Public Authentication endpoints
-app.use('/api/auth', authRouter);
+// Public Authentication endpoints (rate limited)
+app.use('/api/auth', authRateLimiter, authRouter);
 
 // Register Analysis History endpoints (Protected)
 app.use('/api/analysis-history', authMiddleware, analysisHistoryRouter);
@@ -130,11 +167,27 @@ app.use('/api/forecast', authMiddleware, forecastRouter);
 // Register Team Management endpoints (Protected)
 app.use('/api/team', teamRouter);
 
-// Register Judge Demo Mode Scenario Seeding Enpoints (Protected)
+// Register Judge Demo Mode Scenario Seeding Endpoints (Protected)
 app.use('/api/demo', authMiddleware, demoRouter);
 
-// 2. Autonomous Analysis Route (Protected)
-app.post('/api/analyze', authMiddleware, async (req, res) => {
+// Register OCR Nota endpoints (Protected)
+app.use('/api/ocr', authMiddleware, ocrRouter);
+
+// Register Profit & Cashflow endpoints (Protected)
+app.use('/api/cashflow', authMiddleware, cashflowRouter);
+
+// Register Passive Intelligence endpoints (Protected)
+app.use('/api', authMiddleware, passiveIntelligenceRouter);
+app.use('/api', authMiddleware, businessMemoryRouter);
+app.use('/api', authMiddleware, warungModeRouter);
+app.use('/api', whatsappWebhookRouter);
+app.use('/api', authMiddleware, founderDashboardRouter);
+
+// Register Internal Scheduled Jobs endpoint (NO authMiddleware; protected by x-cron-secret)
+app.use('/api', internalJobsRouter);
+
+// 2. Autonomous Analysis Route (Protected + Rate Limited)
+app.post('/api/analyze', authMiddleware, aiRateLimiter, async (req, res) => {
   try {
     const { fileData, fileName, fileType, textInput, businessType } = req.body;
 
@@ -305,9 +358,9 @@ You MUST produce a JSON response adhering to the exact schema requested.`;
       ],
     };
 
-    // Query Gemini 3.5 Flash
+    // Query Gemini 2.0 Flash (stable production model)
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.0-flash',
       contents: { parts: promptParts },
       config: {
         responseMimeType: 'application/json',
@@ -335,11 +388,11 @@ app.use(errorHandler);
 
 // 3. Vite Server / Production SPA Static Handler Pipeline
 async function runServer() {
-  // Precheck Supabase database schema health to allow instant Local JSON fallback if needed
-  try {
-    await initializeDatabasePrecheck();
-  } catch (dbError) {
-    console.error('Initial database schema verification failed:', dbError);
+  const dbHealth = await verifyDatabaseHealth();
+  if (dbHealth.healthy) {
+    console.log('Database Mode: Supabase PostgreSQL verified. Local JSON fallback is disabled.');
+  } else {
+    console.warn('Database Mode: degraded. Server will fail safely without local JSON writes.', dbHealth.lastError);
   }
 
   if (process.env.NODE_ENV !== 'production') {

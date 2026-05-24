@@ -100,8 +100,12 @@ export class WhatsAppProviderService {
     }
 
     // Always log to history
+    if (!business_id) {
+      throw new Error('Workspace bisnis aktif wajib tersedia sebelum mengirim atau mencatat WhatsApp.');
+    }
+
     await WhatsAppLogRepository.create({
-      business_id: business_id || 'local_profile_id',
+      business_id,
       recipient: cleanPhone,
       message: message,
       status: status,

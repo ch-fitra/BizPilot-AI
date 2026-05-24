@@ -70,9 +70,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in auth middleware:', error);
-    return res.status(500).json({ success: false, error: 'Kesalahan otentikasi internal server.' });
+    return res.status(error.status || 500).json({ success: false, error: error.message || 'Kesalahan otentikasi internal server.' });
   }
 }
 
@@ -109,8 +109,8 @@ export async function simpleAuthMiddleware(req: Request, res: Response, next: Ne
     };
 
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in simpleAuthMiddleware:', error);
-    return res.status(500).json({ success: false, error: 'Kesalahan otentikasi internal.' });
+    return res.status(error.status || 500).json({ success: false, error: error.message || 'Kesalahan otentikasi internal.' });
   }
 }

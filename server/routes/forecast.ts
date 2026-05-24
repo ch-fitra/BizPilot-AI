@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { ForecastRepository, ForecastSnapshot } from '../repositories/forecastRepository';
 import { ForecastingService } from '../services/forecastingService';
 import { ScenarioSimulator, SimulationInput } from '../services/scenarioSimulator';
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     const list = await ForecastRepository.getAll((req as any).businessId);
     res.json({ success: true, snapshots: list });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Gagal mengambil data prediksi' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal mengambil data prediksi' });
   }
 });
 
@@ -23,12 +23,12 @@ router.get('/latest', async (req, res) => {
     let latest = await ForecastRepository.getLatest(activeBusinessId);
     // If no snapshots exist at all, generate an initial 7d forecast on demand so we don't have an empty state!
     if (!latest) {
-      console.log('No snapshots found, generating initial fallback 7d forecast snapshot...');
+      console.log('No snapshots found, generating initial 7d forecast snapshot from database state...');
       latest = await ForecastingService.generateForecast('7d', activeBusinessId);
     }
     res.json({ success: true, snapshot: latest });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Gagal mengambil data prediksi terbaru' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal mengambil data prediksi terbaru' });
   }
 });
 
@@ -36,17 +36,14 @@ router.get('/latest', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await ForecastRepository.getById(id);
+    const activeBusinessId = (req as any).businessId;
+    const item = await ForecastRepository.getById(id, activeBusinessId);
     if (!item) {
       return res.status(404).json({ success: false, error: 'Snapshot tidak ditemukan' });
     }
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && item.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Snapshot belongs to another workspace' });
-    }
     res.json({ success: true, snapshot: item });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Gagal mengambil data snapshot' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal mengambil data snapshot' });
   }
 });
 
@@ -68,7 +65,7 @@ router.post('/generate', async (req, res) => {
       await NotificationRepository.create({
         business_id: snapshot.business_id || null,
         type: 'threat',
-        title: 'Prediksi Tingkat Risiko Bisnis ' + (snapshot.risk_level === 'Critical' ? 'Kritis 🚨' : 'Tinggi ⚠'),
+        title: 'Prediksi Tingkat Risiko Bisnis ' + (snapshot.risk_level === 'Critical' ? 'Kritis ðŸš¨' : 'Tinggi âš '),
         message: `Kalkulasi model memproyeksikan indeks ancaman tinggi. Rekomendasi tindakan: ${snapshot.ai_recommendations.shortTerm[0] || 'Cek dashboard mitigasi.'}`,
         priority: snapshot.risk_level === 'Critical' ? 'critical' : 'high',
         metadata: { snapshot_id: snapshot.id, threat_radar: snapshot.risk_radar }
@@ -106,7 +103,7 @@ router.post('/generate', async (req, res) => {
     res.status(201).json({ success: true, message: 'Prediksi berhasil dibuat dan dikoordinasikan ke sistem notifikasi', snapshot });
   } catch (err: any) {
     console.error('API Error generating forecast context:', err);
-    res.status(500).json({ success: false, error: err.message || 'Gagal memproses kalkulasi kecerdasan prediktif' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal memproses kalkulasi kecerdasan prediktif' });
   }
 });
 
@@ -122,20 +119,16 @@ router.post('/simulate', async (req, res) => {
 
     // Fetch snapshot
     let snapshot: ForecastSnapshot | null = null;
+    const activeBusinessId = (req as any).businessId;
     if (snapshot_id) {
-      snapshot = await ForecastRepository.getById(snapshot_id);
+      snapshot = await ForecastRepository.getById(snapshot_id, activeBusinessId);
     } else {
-      snapshot = await ForecastRepository.getLatest((req as any).businessId);
+      snapshot = await ForecastRepository.getLatest(activeBusinessId);
     }
 
     if (!snapshot) {
       return res.status(404).json({ success: false, error: 'Snapshot acuan simulasi tidak ditemukan' });
     }
-    const activeBusinessId = (req as any).businessId;
-    if (activeBusinessId && snapshot.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Snapshot belongs to another workspace' });
-    }
-
     const input: SimulationInput = {
       expectedDailyGrowth: Number(expectedDailyGrowth),
       stockReorderDelayDays: Number(stockReorderDelayDays),
@@ -154,7 +147,7 @@ router.post('/simulate', async (req, res) => {
       results
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Simulasi kalkulasi masa depan gagal' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Simulasi kalkulasi masa depan gagal' });
   }
 });
 
@@ -163,18 +156,19 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const activeBusinessId = (req as any).businessId;
-    const snapshot = await ForecastRepository.getById(id);
-    if (activeBusinessId && snapshot && snapshot.business_id !== activeBusinessId) {
-      return res.status(403).json({ success: false, error: 'Snapshot belongs to another workspace' });
+    const snapshot = await ForecastRepository.getById(id, activeBusinessId);
+    if (!snapshot) {
+      return res.status(404).json({ success: false, error: 'Snapshot tidak ditemukan' });
     }
-    const success = await ForecastRepository.delete(id);
+    const success = await ForecastRepository.delete(id, activeBusinessId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Snapshot tidak ditemukan' });
     }
     res.json({ success: true, message: 'Snapshot berhasil dihapus' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || 'Gagal menghapus snapshot' });
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal menghapus snapshot' });
   }
 });
 
 export default router;
+

@@ -20,7 +20,7 @@ export class BusinessProfileService {
       console.error('Failed to fetch active business profile:', err);
       return {
         success: false,
-        storageMode: 'Local JSON',
+        storageMode: 'Unavailable',
         isSupabaseConfigured: false,
         isSchemaMissing: false,
         data: null
@@ -41,7 +41,7 @@ export class BusinessProfileService {
       console.error('Failed to trigger database schema recheck:', error);
       return {
         success: false,
-        storageMode: 'Local JSON',
+        storageMode: 'Unavailable',
         isSupabaseConfigured: false,
         isSchemaMissing: true,
         data: null
