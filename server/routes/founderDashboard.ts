@@ -19,6 +19,9 @@ router.get('/founder-dashboard/summary', async (req, res) => {
     const metric = await runSupabaseQuery<any | null>('founder.metric.today', (supabase) =>
       supabase.from('business_daily_metrics').select('*').eq('business_id', businessId).eq('metric_date', today).maybeSingle()
     );
+    const baselineMetrics = await runSupabaseQuery<any[]>('founder.metric.baseline', (supabase) =>
+      supabase.from('business_daily_metrics').select('revenue,expenses,profit,transaction_count').eq('business_id', businessId).lt('metric_date', today).order('metric_date', { ascending: false }).limit(7)
+    );
     const alerts = await runSupabaseQuery<any[]>('founder.alerts', (supabase) =>
       supabase.from('business_alerts').select('*').eq('business_id', businessId).eq('status', 'active').order('created_at', { ascending: false }).limit(10)
     );
@@ -47,13 +50,15 @@ router.get('/founder-dashboard/summary', async (req, res) => {
     const highAlerts = alerts.filter((a) => a.severity === 'high').length;
 
     const hasData = !!metric || scans.length > 0 || voiceTx.length > 0 || alerts.length > 0;
+    const hasBaseline = (baselineMetrics || []).length >= 4;
     let score: number | null = null;
     const factors: string[] = [];
-    if (hasData) {
+    if (hasData && (hasBaseline || Number(metric?.transaction_count || 0) > 0 || scans.length > 0)) {
       const revenue = Number(metric?.revenue || 0);
       const profit = Number(metric?.profit || 0);
+      const avgBaseRevenue = hasBaseline ? (baselineMetrics.reduce((s, m) => s + Number(m.revenue || 0), 0) / baselineMetrics.length) : 0;
       score = 0;
-      score += revenue > 0 ? 25 : 5;
+      score += hasBaseline ? (revenue >= avgBaseRevenue * 0.8 ? 25 : revenue > 0 ? 12 : 5) : (revenue > 0 ? 18 : 5);
       score += profit >= 0 ? 20 : 5;
       score += Math.max(0, 25 - (criticalAlerts * 12 + highAlerts * 6));
       score += avgConfidence === null ? 7 : Math.round(avgConfidence * 15);
@@ -63,6 +68,7 @@ router.get('/founder-dashboard/summary', async (req, res) => {
       if (profit < 0) factors.push('Profit hari ini negatif');
       if (criticalAlerts > 0) factors.push(`${criticalAlerts} alert kritis aktif`);
       if (avgConfidence !== null && avgConfidence < 0.65) factors.push('Kualitas OCR masih rendah');
+      if (!hasBaseline) factors.push('Data historis belum cukup, skor masih fase awal');
     }
 
     const recommendedActions = [

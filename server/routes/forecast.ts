@@ -23,7 +23,7 @@ router.get('/latest', async (req, res) => {
     let latest = await ForecastRepository.getLatest(activeBusinessId);
     // If no snapshots exist at all, generate an initial 7d forecast on demand so we don't have an empty state!
     if (!latest) {
-      console.log('No snapshots found, generating initial 7d forecast snapshot from database state...');
+      // intentionally silent in production; keep auto-bootstrap behavior
       latest = await ForecastingService.generateForecast('7d', activeBusinessId);
     }
     res.json({ success: true, snapshot: latest });

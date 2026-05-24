@@ -28,6 +28,20 @@ function detectIntent(msg: IncomingWhatsAppMessage): Intent {
 }
 
 export class WhatsAppAssistantService {
+  static async cleanupExpiredPendingActions(): Promise<number> {
+    const now = new Date().toISOString();
+    const rows = await runSupabaseQuery<any[]>('wa.pending.expired.list', (supabase) =>
+      supabase.from('whatsapp_pending_actions').select('id').eq('status', 'pending').lte('expires_at', now)
+    );
+    let count = 0;
+    for (const row of rows || []) {
+      await runSupabaseQuery<any>('wa.pending.expired.update', (supabase) =>
+        supabase.from('whatsapp_pending_actions').update({ status: 'expired' }).eq('id', row.id).select('id').single()
+      );
+      count += 1;
+    }
+    return count;
+  }
   static async linkPhoneToBusiness(businessId: string, phoneNumber: string) {
     const h = hashPhone(phoneNumber);
     return runSupabaseQuery<any>('wa.link.upsert', (supabase) =>

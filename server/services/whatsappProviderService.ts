@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'crypto';
 
 export type WhatsAppProviderType = 'simulation' | 'fonnte' | 'meta';
 
@@ -27,9 +28,15 @@ export class WhatsAppProviderClient {
 
   static verifySignature(headers: any, rawBody: string): boolean {
     const secret = String(process.env.WHATSAPP_WEBHOOK_SECRET || '');
-    if (!secret) return true;
-    const received = String(headers['x-whatsapp-signature'] || headers['x-hub-signature-256'] || '');
-    return !!received;
+    if (!secret) return this.getProvider() === 'simulation';
+    if (this.getProvider() === 'meta') {
+      const received = String(headers['x-hub-signature-256'] || '');
+      if (!received.startsWith('sha256=')) return false;
+      const expected = `sha256=${crypto.createHmac('sha256', secret).update(rawBody).digest('hex')}`;
+      return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+    }
+    const received = String(headers['x-whatsapp-signature'] || headers['x-fonnte-signature'] || '');
+    return received.length > 0 && received === secret;
   }
 
   static normalizeInbound(body: any): IncomingWhatsAppMessage[] {

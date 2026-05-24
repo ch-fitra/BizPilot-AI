@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, CheckCircle2, MessageSquare, Mic, Receipt, Sparkles } from 'lucide-react';
 import DashboardSkeleton from './skeletons/DashboardSkeleton';
 import { PassiveIntelligenceClient } from '../services/passiveIntelligenceService';
+import { FounderDashboardSummary } from '../types/api';
 
 interface OverviewTabProps {
   setActiveTab: (tab: string) => void;
@@ -13,7 +14,7 @@ function rupiah(n: number) {
 }
 
 export default function OverviewTab({ setActiveTab, hasProfile = true }: OverviewTabProps) {
-  const [data, setData] = React.useState<any>(null);
+  const [data, setData] = React.useState<FounderDashboardSummary | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [running, setRunning] = React.useState(false);
 
@@ -70,7 +71,7 @@ export default function OverviewTab({ setActiveTab, hasProfile = true }: Overvie
       <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
         <p className="text-[10px] font-mono uppercase text-slate-500">Passive Intelligence Alerts</p>
         <div className="mt-2 space-y-2">
-          {(data.alerts || []).slice(0, 4).map((a: any) => (
+          {(data.alerts || []).slice(0, 4).map((a) => (
             <div key={a.id} className="text-xs text-slate-300 flex items-start gap-2">
               {a.severity === 'critical' || a.severity === 'high' ? <AlertTriangle className="w-3.5 h-3.5 text-rose-400 mt-0.5" /> : <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 mt-0.5" />}
               <span>{a.message}</span>
@@ -95,7 +96,7 @@ export default function OverviewTab({ setActiveTab, hasProfile = true }: Overvie
       <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
         <p className="text-[10px] font-mono uppercase text-slate-500">Business Memory Highlights</p>
         <div className="mt-2 space-y-1">
-          {(data.memoryHighlights || []).map((m: any) => <p key={m.id} className="text-xs text-slate-300">{m.title}</p>)}
+          {(data.memoryHighlights || []).map((m) => <p key={m.id} className="text-xs text-slate-300">{m.title}</p>)}
           {(data.memoryHighlights || []).length === 0 && <p className="text-xs text-slate-500">Belum ada memory bisnis.</p>}
         </div>
       </div>
@@ -103,7 +104,7 @@ export default function OverviewTab({ setActiveTab, hasProfile = true }: Overvie
       <div className="p-4 rounded-2xl bg-[#121622] border border-slate-850">
         <p className="text-[10px] font-mono uppercase text-slate-500">Recommended Next Actions</p>
         <div className="mt-2 space-y-1">
-          {(data.recommendedActions || []).map((r: any, i: number) => <p key={i} className="text-xs text-slate-300">{r.text}</p>)}
+          {(data.recommendedActions || []).map((r, i: number) => <p key={i} className="text-xs text-slate-300">{r.text}</p>)}
         </div>
       </div>
 

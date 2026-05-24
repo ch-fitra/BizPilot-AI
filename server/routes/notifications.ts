@@ -3,7 +3,7 @@ import { NotificationRepository } from '../repositories/notificationRepository';
 import { AutomationRepository } from '../repositories/automationRepository';
 import { WhatsAppLogRepository } from '../repositories/whatsappLogRepository';
 import { AutomationEngine } from '../services/automationEngine';
-import { WhatsAppProviderService } from '../services/whatsappProvider';
+import { WhatsAppProviderClient } from '../services/whatsappProviderService';
 import { AIMessageGenerator } from '../services/aiMessageGenerator';
 import { enforceRole } from '../middleware/roleGuard';
 import { CRMLeadRepository } from '../repositories/crmLeadRepository';
@@ -205,13 +205,18 @@ router.post('/whatsapp/send', enforceRole('edit'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'recipient and message are required' });
     }
 
-    const dispatchResult = await WhatsAppProviderService.sendMessage({
+    const dispatch = await WhatsAppProviderClient.sendText(recipient, message);
+    const providerForLog = WhatsAppProviderClient.getProvider() === 'meta' ? 'whatsapp_cloud_api' : 'fonnte';
+    await WhatsAppLogRepository.create({
+      business_id: businessId,
       recipient,
       message,
-      business_id: businessId
+      status: dispatch.status,
+      provider: providerForLog,
+      metadata: { provider_message_id: dispatch.providerMessageId || null },
     });
 
-    res.json(dispatchResult);
+    res.json({ success: dispatch.status === 'sent', message: dispatch.status === 'sent' ? 'Pesan terkirim.' : 'Gagal kirim pesan.', provider: WhatsAppProviderClient.getProvider(), status: dispatch.status });
   } catch (err: any) {
     res.status(err.status || 500).json({ success: false, error: err.message });
   }

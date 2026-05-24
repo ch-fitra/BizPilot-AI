@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PassiveIntelligenceRunner } from '../jobs/passiveIntelligenceRunner';
+import { WhatsAppAssistantService } from '../services/whatsappAssistantService';
 
 const router = Router();
 
@@ -47,3 +48,13 @@ router.post('/internal/jobs/passive-intelligence', async (req, res) => {
 });
 
 export default router;
+
+router.post('/internal/jobs/whatsapp-cleanup', async (req, res) => {
+  try {
+    assertCronSecret(req);
+    const expired = await WhatsAppAssistantService.cleanupExpiredPendingActions();
+    return res.json({ success: true, expired });
+  } catch (err: any) {
+    return res.status(err.status || 500).json({ success: false, code: err.code, error: err.message || 'Gagal cleanup pending action WhatsApp.' });
+  }
+});
