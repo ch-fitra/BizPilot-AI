@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { validateAndSanitizeInput } from '../utils/promptGuards';
 import { BusinessChatService } from '../services/businessChatService';
 import { ChatHistoryRepository } from '../repositories/chatHistoryRepository';
@@ -11,7 +11,7 @@ router.post('/business', async (req, res) => {
     // Audit input bounds and sanitize malicious entries
     const validated = validateAndSanitizeInput(req.body);
     const includeHistory = req.body.include_history !== false;
-    const activeBusinessId = (req as any).businessId || validated.business_id;
+    const activeBusinessId = req.businessId || validated.business_id;
 
     // Call service to coordinate profile context query and ask Gemini
     const result = await BusinessChatService.processChat({
@@ -37,7 +37,7 @@ router.post('/business', async (req, res) => {
 // 2. GET /api/chat/history
 router.get('/history', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const history = await ChatHistoryRepository.getAll(businessId);
 
     res.json({
@@ -56,7 +56,7 @@ router.get('/history', async (req, res) => {
 // 3. DELETE /api/chat/history
 router.delete('/history', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     await ChatHistoryRepository.clearHistory(businessId);
 
     res.json({

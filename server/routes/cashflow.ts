@@ -5,7 +5,7 @@ import { AnalysisHistoryRepository } from '../repositories/analysisHistoryReposi
 const router = Router();
 
 function getBusinessId(req: Request): string | null {
-  return (req as any).businessId || (req.query.business_id as string) || null;
+  return req.businessId || (req.query.business_id as string) || null;
 }
 
 router.get('/summary', async (req: Request, res: Response) => {

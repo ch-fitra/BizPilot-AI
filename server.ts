@@ -390,9 +390,9 @@ app.use(errorHandler);
 async function runServer() {
   const dbHealth = await verifyDatabaseHealth();
   if (dbHealth.healthy) {
-    console.log('Database Mode: Supabase PostgreSQL verified. Local JSON fallback is disabled.');
+    console.log('Database Mode: Supabase PostgreSQL verified. Running in Cloud-Native Mode.');
   } else {
-    console.warn('Database Mode: degraded. Server will fail safely without local JSON writes.', dbHealth.lastError);
+    console.warn('Database Mode: degraded. Database operations will fail safely without writing to local files.', dbHealth.lastError);
   }
 
   if (process.env.NODE_ENV !== 'production') {

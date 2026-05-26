@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/business-memory', async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     const page = Math.max(1, Number(req.query.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize || 10)));
@@ -19,7 +19,7 @@ router.get('/business-memory', async (req, res) => {
 
 router.post('/business-memory/generate', enforceRole('edit'), async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     const memoryType = req.body?.memory_type === 'monthly_summary' ? 'monthly_summary' : 'weekly_summary';
     const result = await BusinessMemoryService.generatePeriodMemory(businessId, memoryType);
@@ -31,7 +31,7 @@ router.post('/business-memory/generate', enforceRole('edit'), async (req, res) =
 
 router.post('/business-memory/search', async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     const query = String(req.body?.query || '').trim();
     if (!query) return res.status(400).json({ success: false, error: 'Query wajib diisi.' });

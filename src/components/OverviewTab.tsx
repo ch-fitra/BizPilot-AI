@@ -50,6 +50,28 @@ export default function OverviewTab({ setActiveTab, hasProfile = true }: Overvie
   const health = data.businessHealthScore;
   const statusColor = health.status === 'healthy' ? 'text-emerald-400' : health.status === 'warning' ? 'text-amber-400' : health.status === 'critical' ? 'text-rose-400' : 'text-slate-400';
 
+  if (health.status === 'no_data' && data.today.transactionCount === 0 && data.today.expenses === 0 && data.ocrQuality.totalScans === 0 && data.warungMode.todayTransactions === 0) {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-indigo-900/30 to-[#121622] border border-indigo-500/20 text-center animate-fadeIn">
+        <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/10">
+          <Sparkles className="w-10 h-10 text-indigo-400" />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-100 mb-3 tracking-tight">Selamat Datang di BizPilot AI!</h2>
+        <p className="text-sm text-slate-400 max-w-lg mx-auto mb-8 leading-relaxed">
+          Dasbor kecerdasan bisnis Anda sudah aktif. Agar Co-Pilot dapat memprediksi kesehatan finansial dan memberikan saran operasional, mari mulai dengan memasukkan data pertama Anda.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button onClick={() => setActiveTab('ocr_nota')} className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+            <Receipt className="w-4 h-4"/> Upload Nota Pertama
+          </button>
+          <button onClick={() => setActiveTab('warung_mode')} className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#1a1f2e] hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center justify-center gap-2">
+            <Mic className="w-4 h-4"/> Coba Warung Mode
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="p-5 rounded-2xl bg-[#121622] border border-slate-850">

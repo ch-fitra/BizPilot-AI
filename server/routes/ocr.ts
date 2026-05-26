@@ -6,7 +6,7 @@ const router = Router();
 router.post('/nota', async (req: Request, res: Response) => {
   try {
     const { imageData, mimeType, fileName } = req.body;
-    const businessId = (req as any).businessId as string | undefined;
+    const businessId = req.businessId as string | undefined;
 
     if (!businessId) {
       return res.status(400).json({

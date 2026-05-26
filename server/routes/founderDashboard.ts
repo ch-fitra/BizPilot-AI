@@ -12,7 +12,7 @@ function healthLabel(score: number | null): 'healthy' | 'warning' | 'critical' |
 
 router.get('/founder-dashboard/summary', async (req, res) => {
   try {
-    const businessId = (req as any).businessId as string | undefined;
+    const businessId = req.businessId as string | undefined;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
 
     const today = new Date().toISOString().split('T')[0];
@@ -53,22 +53,30 @@ router.get('/founder-dashboard/summary', async (req, res) => {
     const hasBaseline = (baselineMetrics || []).length >= 4;
     let score: number | null = null;
     const factors: string[] = [];
-    if (hasData && (hasBaseline || Number(metric?.transaction_count || 0) > 0 || scans.length > 0)) {
-      const revenue = Number(metric?.revenue || 0);
-      const profit = Number(metric?.profit || 0);
+    
+    const revenue = Number(metric?.revenue || 0);
+    const profit = Number(metric?.profit || 0);
+    const transactionCount = Number(metric?.transaction_count || 0);
+    
+    // Cegah "early-stage low score" jika data belum memadai
+    const isSufficientData = hasBaseline || revenue > 0 || transactionCount >= 3;
+
+    if (hasData && isSufficientData) {
       const avgBaseRevenue = hasBaseline ? (baselineMetrics.reduce((s, m) => s + Number(m.revenue || 0), 0) / baselineMetrics.length) : 0;
       score = 0;
       score += hasBaseline ? (revenue >= avgBaseRevenue * 0.8 ? 25 : revenue > 0 ? 12 : 5) : (revenue > 0 ? 18 : 5);
       score += profit >= 0 ? 20 : 5;
       score += Math.max(0, 25 - (criticalAlerts * 12 + highAlerts * 6));
       score += avgConfidence === null ? 7 : Math.round(avgConfidence * 15);
-      score += (Number(metric?.transaction_count || 0) > 0 || scans.length > 0 || voiceTx.length > 0) ? 15 : 3;
+      score += (transactionCount > 0 || scans.length > 0 || voiceTx.length > 0) ? 15 : 3;
       score = Math.max(0, Math.min(100, score));
       if (revenue <= 0) factors.push('Belum ada pendapatan hari ini');
       if (profit < 0) factors.push('Profit hari ini negatif');
       if (criticalAlerts > 0) factors.push(`${criticalAlerts} alert kritis aktif`);
       if (avgConfidence !== null && avgConfidence < 0.65) factors.push('Kualitas OCR masih rendah');
       if (!hasBaseline) factors.push('Data historis belum cukup, skor masih fase awal');
+    } else if (hasData) {
+      factors.push('Data operasional masih terlalu sedikit untuk diukur skor kesehatannya.');
     }
 
     const recommendedActions = [

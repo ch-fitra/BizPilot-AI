@@ -6,7 +6,7 @@ const router = Router();
 // GET all analysis records
 router.get('/', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const list = await AnalysisHistoryRepository.getAll(activeBusinessId);
     res.json({ success: true, count: list.length, data: list });
   } catch (error: any) {
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 // GET latest analysis record
 router.get('/latest', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const latest = await AnalysisHistoryRepository.getLatest(activeBusinessId);
     res.json({ success: true, data: latest });
   } catch (error: any) {
@@ -28,7 +28,7 @@ router.get('/latest', async (req, res) => {
 // GET analysis record by ID
 router.get('/:id', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const record = await AnalysisHistoryRepository.getById(req.params.id, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Analysis record not found' });
@@ -68,7 +68,7 @@ router.post('/', async (req, res) => {
     }
 
     const created = await AnalysisHistoryRepository.create({
-      business_id: (req as any).businessId || null,
+      business_id: req.businessId || null,
       business_name: business_name || 'My Business',
       business_type: business_type || 'MSME',
       input_source: input_source || 'text',
@@ -94,7 +94,7 @@ router.post('/', async (req, res) => {
 // DELETE analysis record
 router.delete('/:id', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const record = await AnalysisHistoryRepository.getById(req.params.id, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Analysis record not found for execution' });

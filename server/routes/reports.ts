@@ -7,7 +7,7 @@ const router = Router();
 // GET all reports
 router.get('/', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const list = await AnalysisHistoryRepository.getAll(activeBusinessId);
     res.json({
       success: true,
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 // GET single report by id
 router.get('/:analysisId', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const record = await AnalysisHistoryRepository.getById(req.params.analysisId, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Report not found' });
@@ -42,7 +42,7 @@ router.get('/:analysisId', async (req, res) => {
 // GET CSV representation of a report
 router.get('/:analysisId/csv', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const record = await AnalysisHistoryRepository.getById(req.params.analysisId, activeBusinessId);
     if (!record) {
       return res.status(404).json({ success: false, error: 'Report not found for CSV generation' });

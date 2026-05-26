@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { enforceRole } from '../middleware/roleGuard';
 import { BusinessMemberRepository } from '../repositories/businessMemberRepository';
@@ -13,7 +13,7 @@ router.use(authMiddleware);
 // 1. GET ALL TEAM MEMBERS FOR ACTIVATED WORKSPACE
 router.get('/', enforceRole('view'), async (req: Request, res: Response) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     if (!businessId) {
       return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     }
@@ -32,7 +32,7 @@ router.get('/', enforceRole('view'), async (req: Request, res: Response) => {
 // 2. ADD / INVITE AN ASSOCIATE MEMBER BY EMAIL OR DIRECT ACCOUNT CREATION
 router.post('/invite', enforceRole('manageUsers'), async (req: Request, res: Response) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     const { email, fullName, role } = req.body;
 
     if (!email || !fullName || !role) {
@@ -89,7 +89,7 @@ router.post('/invite', enforceRole('manageUsers'), async (req: Request, res: Res
 // 3. EDIT ROLE ASSIGNMENT OF A TEAM MEMBER
 router.post('/role', enforceRole('manageUsers'), async (req: Request, res: Response) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     const { userId, role } = req.body;
 
     if (!userId || !role) {
@@ -107,7 +107,7 @@ router.post('/role', enforceRole('manageUsers'), async (req: Request, res: Respo
     }
 
     // Owner role changes: prevent owner self-demotion accidentally without precaution
-    const requester = (req as any).user;
+    const requester = req.user;
     if (userId === requester.id && membership.role === 'owner' && role !== 'owner') {
       // Find out if they are the last owner
       const allMembers = await BusinessMemberRepository.getMembersByBusinessId(businessId);
@@ -135,9 +135,9 @@ router.post('/role', enforceRole('manageUsers'), async (req: Request, res: Respo
 // 4. EVIC / REMOVE TEAM MEMBER WORKSPACE MEMBERSHIP
 router.delete('/member/:userId', enforceRole('manageUsers'), async (req: Request, res: Response) => {
   try {
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
     const targetUserId = req.params.userId;
-    const requester = (req as any).user;
+    const requester = req.user;
 
     if (targetUserId === requester.id) {
       return res.status(400).json({ success: false, error: 'Anda tidak dapat menghapus keanggotaan Anda sendiri di menu tim.' });

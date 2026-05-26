@@ -53,7 +53,7 @@ router.get('/combined-schema', async (req, res) => {
 // GET active business profile
 router.get('/', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const profile = activeBusinessId
       ? await BusinessProfileRepository.getById(activeBusinessId)
       : await BusinessProfileRepository.getActiveProfile();
@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
 router.post('/recheck-schema', async (req, res) => {
   try {
     const database = await verifyDatabaseHealth();
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const profile = activeBusinessId
       ? await BusinessProfileRepository.getById(activeBusinessId)
       : await BusinessProfileRepository.getActiveProfile();
@@ -108,7 +108,7 @@ router.post('/recheck-schema', async (req, res) => {
 // GET all business profiles (useful for listing/switching profiles)
 router.get('/all', async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const memberships = user?.id
       ? await BusinessMemberRepository.getMembershipsByUserId(user.id)
       : [];
@@ -140,7 +140,7 @@ router.post('/', async (req, res) => {
     };
 
     const newProfile = await BusinessProfileRepository.createProfile(payload);
-    const user = (req as any).user;
+    const user = req.user;
     if (user?.id) {
       await BusinessMemberRepository.addMember(newProfile.id, user.id, 'owner');
     }
@@ -154,7 +154,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', enforceRole('edit'), async (req, res) => {
   try {
     const id = req.params.id;
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     if (activeBusinessId && id !== activeBusinessId) {
       return res.status(403).json({ success: false, error: 'Anda hanya dapat mengubah profil workspace aktif.' });
     }
@@ -185,7 +185,7 @@ router.put('/:id', enforceRole('edit'), async (req, res) => {
 router.delete('/:id', enforceRole('delete'), async (req, res) => {
   try {
     const id = req.params.id;
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     if (activeBusinessId && id !== activeBusinessId) {
       return res.status(403).json({ success: false, error: 'Anda hanya dapat menghapus profil workspace aktif.' });
     }

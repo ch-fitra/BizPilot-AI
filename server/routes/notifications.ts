@@ -17,7 +17,7 @@ const router = express.Router();
 // GET /api/notifications -> Retrieve all notifications for a business
 router.get('/notifications', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     
     // Automatically trigger on-demand sweep & daily summary to keep everything freshly live!
     await AutomationEngine.runSweep(businessId);
@@ -35,7 +35,7 @@ router.get('/notifications', async (req, res) => {
 router.post('/notifications', enforceRole('edit'), async (req, res) => {
   try {
     const { type, title, message, priority, metadata } = req.body;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     
     if (!type || !title || !message) {
       // If we called simple empty POST, trigger a sweep check
@@ -67,7 +67,7 @@ router.post('/notifications', enforceRole('edit'), async (req, res) => {
 // POST /api/notifications/read-all -> Mark all as read
 router.post('/notifications/read-all', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     await NotificationRepository.markAllAsRead(businessId);
     res.json({ success: true, message: 'All notifications marked as read' });
   } catch (err: any) {
@@ -79,7 +79,7 @@ router.post('/notifications/read-all', async (req, res) => {
 router.patch('/notifications/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const existing = (await NotificationRepository.getAll(businessId)).find((notification) => notification.id === id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Notification not found' });
@@ -98,7 +98,7 @@ router.patch('/notifications/:id/read', async (req, res) => {
 router.delete('/notifications/:id', enforceRole('delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const existing = (await NotificationRepository.getAll(businessId)).find((notification) => notification.id === id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Notification not found or delete failed' });
@@ -120,7 +120,7 @@ router.delete('/notifications/:id', enforceRole('delete'), async (req, res) => {
 // GET /api/automation/rules -> Fetch all automation rules
 router.get('/automation/rules', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const rules = await AutomationRepository.getAll(businessId);
     res.json({ success: true, rules });
   } catch (err: any) {
@@ -132,7 +132,7 @@ router.get('/automation/rules', async (req, res) => {
 router.post('/automation/rules', enforceRole('edit'), async (req, res) => {
   try {
     const { rule_type, is_active, trigger_config, action_config } = req.body;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     
     if (!rule_type) {
       return res.status(400).json({ success: false, error: 'rule_type is required' });
@@ -157,7 +157,7 @@ router.put('/automation/rules/:id', enforceRole('edit'), async (req, res) => {
   try {
     const { id } = req.params;
     const { rule_type, is_active, trigger_config, action_config } = req.body;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
 
     const updated = await AutomationRepository.update(id, {
       rule_type,
@@ -180,7 +180,7 @@ router.put('/automation/rules/:id', enforceRole('edit'), async (req, res) => {
 router.delete('/automation/rules/:id', enforceRole('delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const success = await AutomationRepository.delete(id, businessId);
     if (!success) {
       return res.status(404).json({ success: false, error: 'Rule not found' });
@@ -199,7 +199,7 @@ router.delete('/automation/rules/:id', enforceRole('delete'), async (req, res) =
 router.post('/whatsapp/send', enforceRole('edit'), async (req, res) => {
   try {
     const { recipient, message } = req.body;
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
 
     if (!recipient || !message) {
       return res.status(400).json({ success: false, error: 'recipient and message are required' });
@@ -225,7 +225,7 @@ router.post('/whatsapp/send', enforceRole('edit'), async (req, res) => {
 // GET /api/whatsapp/logs -> Get history of all dispatched WhatsApp logs
 router.get('/whatsapp/logs', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const logs = await WhatsAppLogRepository.getAll(businessId);
     res.json({ success: true, logs });
   } catch (err: any) {
@@ -261,7 +261,7 @@ router.post('/whatsapp/generate-message', async (req, res) => {
 // GET /api/crm/dashboard -> Real-time CRM pipeline summary for Overview tab
 router.get('/crm/dashboard', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     const allLeads = await CRMLeadRepository.getAll(businessId);
 
     const activeLeads = allLeads.filter(l => l.status === 'active');

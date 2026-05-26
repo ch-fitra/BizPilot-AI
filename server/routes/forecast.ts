@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { ForecastRepository, ForecastSnapshot } from '../repositories/forecastRepository';
 import { ForecastingService } from '../services/forecastingService';
 import { ScenarioSimulator, SimulationInput } from '../services/scenarioSimulator';
@@ -9,7 +9,7 @@ const router = Router();
 // GET /api/forecast -> Get all snapshots
 router.get('/', async (req, res) => {
   try {
-    const list = await ForecastRepository.getAll((req as any).businessId);
+    const list = await ForecastRepository.getAll(req.businessId);
     res.json({ success: true, snapshots: list });
   } catch (err: any) {
     res.status(err.status || 500).json({ success: false, error: err.message || 'Gagal mengambil data prediksi' });
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 // GET /api/forecast/latest -> Get the newest forecast snapshot
 router.get('/latest', async (req, res) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     let latest = await ForecastRepository.getLatest(activeBusinessId);
     // If no snapshots exist at all, generate an initial 7d forecast on demand so we don't have an empty state!
     if (!latest) {
@@ -36,7 +36,7 @@ router.get('/latest', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const item = await ForecastRepository.getById(id, activeBusinessId);
     if (!item) {
       return res.status(404).json({ success: false, error: 'Snapshot tidak ditemukan' });
@@ -56,7 +56,7 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Rentang waktu (range) harus bernilai 7d, 14d, atau 30d' });
     }
 
-    const snapshot = await ForecastingService.generateForecast(range, (req as any).businessId);
+    const snapshot = await ForecastingService.generateForecast(range, req.businessId);
 
     // Integrasi otomatisasi & notifikasi berdasarkan hasil kalkulasi snapshot:
     
@@ -65,7 +65,7 @@ router.post('/generate', async (req, res) => {
       await NotificationRepository.create({
         business_id: snapshot.business_id || null,
         type: 'threat',
-        title: 'Prediksi Tingkat Risiko Bisnis ' + (snapshot.risk_level === 'Critical' ? 'Kritis ðŸš¨' : 'Tinggi âš '),
+        title: 'Prediksi Tingkat Risiko Bisnis ' + (snapshot.risk_level === 'Critical' ? 'Kritis 🚨' : 'Tinggi ⚠'),
         message: `Kalkulasi model memproyeksikan indeks ancaman tinggi. Rekomendasi tindakan: ${snapshot.ai_recommendations.shortTerm[0] || 'Cek dashboard mitigasi.'}`,
         priority: snapshot.risk_level === 'Critical' ? 'critical' : 'high',
         metadata: { snapshot_id: snapshot.id, threat_radar: snapshot.risk_radar }
@@ -119,7 +119,7 @@ router.post('/simulate', async (req, res) => {
 
     // Fetch snapshot
     let snapshot: ForecastSnapshot | null = null;
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     if (snapshot_id) {
       snapshot = await ForecastRepository.getById(snapshot_id, activeBusinessId);
     } else {
@@ -155,7 +155,7 @@ router.post('/simulate', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     const snapshot = await ForecastRepository.getById(id, activeBusinessId);
     if (!snapshot) {
       return res.status(404).json({ success: false, error: 'Snapshot tidak ditemukan' });

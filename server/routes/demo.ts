@@ -38,7 +38,7 @@ router.post('/start', async (req, res, next) => {
     }
 
     // Always use the verified tenant context from authMiddleware.
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     if (!activeBusinessId) {
       return res.status(400).json({ success: false, error: 'Workspace aktif wajib tersedia sebelum menjalankan demo.' });
     }
@@ -66,7 +66,7 @@ router.post('/start', async (req, res, next) => {
 // POST /api/demo/reset -> Reset demo state
 router.post('/reset', async (req, res, next) => {
   try {
-    const activeBusinessId = (req as any).businessId;
+    const activeBusinessId = req.businessId;
     if (!activeBusinessId) {
       return res.status(400).json({ success: false, error: 'Workspace aktif wajib tersedia sebelum reset demo.' });
     }

@@ -39,7 +39,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     // Attach user payload
-    (req as any).user = {
+    req.user = {
       id: user.id,
       email: user.email,
       fullName: user.full_name
@@ -50,7 +50,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const activeBusinessId = (headerBusinessId as string) || user.default_business_id;
 
     if (activeBusinessId) {
-      (req as any).businessId = activeBusinessId;
+      req.businessId = activeBusinessId;
       // Hard-isolate all requests to the matching tenant's business ID
       req.query.business_id = activeBusinessId;
       if (req.body && typeof req.body === 'object') {
@@ -102,7 +102,7 @@ export async function simpleAuthMiddleware(req: Request, res: Response, next: Ne
       return res.status(401).json({ success: false, error: 'User tidak ditemukan.' });
     }
 
-    (req as any).user = {
+    req.user = {
       id: user.id,
       email: user.email,
       fullName: user.full_name

@@ -6,7 +6,7 @@ const router = Router();
 
 router.post('/passive-intelligence/run', enforceRole('edit'), async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     if (!businessId) {
       return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     }
@@ -24,7 +24,7 @@ router.post('/passive-intelligence/run', enforceRole('edit'), async (req, res) =
 
 router.get('/passive-intelligence/alerts', async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     if (!businessId) {
       return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     }
@@ -38,7 +38,7 @@ router.get('/passive-intelligence/alerts', async (req, res) => {
 
 router.patch('/passive-intelligence/alerts/:id/resolve', enforceRole('edit'), async (req, res) => {
   try {
-    const businessId = (req as any).businessId || null;
+    const businessId = req.businessId || null;
     if (!businessId) {
       return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     }

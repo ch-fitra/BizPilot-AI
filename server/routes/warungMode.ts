@@ -6,7 +6,7 @@ const router = Router();
 
 router.post('/warung-mode/parse-voice', enforceRole('edit'), async (req, res) => {
   try {
-    const businessId = (req as any).businessId as string | undefined;
+    const businessId = req.businessId as string | undefined;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     const transcript = String(req.body?.transcript || '');
     const parsed = await WarungModeService.parseVoiceTranscript(businessId, transcript);
@@ -18,7 +18,7 @@ router.post('/warung-mode/parse-voice', enforceRole('edit'), async (req, res) =>
 
 router.post('/warung-mode/save-transaction', enforceRole('edit'), async (req, res) => {
   try {
-    const businessId = (req as any).businessId as string | undefined;
+    const businessId = req.businessId as string | undefined;
     if (!businessId) return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
     const idempotencyKey = String(req.headers['x-idempotency-key'] || req.body?.idempotency_key || '');
     const saved = await WarungModeService.saveTransaction({

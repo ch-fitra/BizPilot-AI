@@ -133,7 +133,7 @@ router.post('/login', async (req: Request, res: Response) => {
 // 3. RETRIEVE CURRENT LOGGED-IN SESSION DETAILS
 router.get('/me', simpleAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const requester = (req as any).user;
+    const requester = req.user;
     const user = await UserProfileRepository.findById(requester.id);
     
     if (!user) {
@@ -181,7 +181,7 @@ router.get('/me', simpleAuthMiddleware, async (req: Request, res: Response) => {
 // 4. CREATE A NEW WORKSPACE/BUSINESS WITHIN ONBOARDING OR DASHBOARD
 router.post('/workspace', simpleAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const requester = (req as any).user;
+    const requester = req.user;
     const { businessName, businessType, location, currency } = req.body;
 
     if (!businessName) {
@@ -220,7 +220,7 @@ router.post('/workspace', simpleAuthMiddleware, async (req: Request, res: Respon
 // 5. UPDATE CURRENT WORKSPACE DEFAULT SWITCH OR PROFILE DETAILS
 router.post('/profile', simpleAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const requester = (req as any).user;
+    const requester = req.user;
     const { fullName, avatarUrl, defaultBusinessId } = req.body;
 
     const updates: any = {};

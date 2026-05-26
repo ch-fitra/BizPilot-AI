@@ -23,7 +23,7 @@ export class RolePermissions {
 export function enforceRole(requiredPermissions: 'view' | 'edit' | 'delete' | 'manageUsers') {
   return (req: Request, res: Response, next: NextFunction) => {
     const role = (req as any).membershipRole as UserRole | undefined;
-    const businessId = (req as any).businessId;
+    const businessId = req.businessId;
 
     if (!businessId) {
       return res.status(400).json({ success: false, error: 'Konteks bisnis/workspace tidak terdeteksi.' });
